@@ -25,6 +25,7 @@ android {
         versionName = "1.0.6"
 
         buildConfigField("String", "GITHUB_REPO", "\"rafaelcs28/HudImpulse\"")
+        buildConfigField("String", "HERE_API_KEY", "\"${signingProp("HERE_API_KEY", "here.api.key")}\"")
     }
 
     signingConfigs {

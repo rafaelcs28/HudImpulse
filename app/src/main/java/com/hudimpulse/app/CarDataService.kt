@@ -34,11 +34,13 @@ class CarDataService : Service() {
     override fun onCreate() {
         super.onCreate()
         connectToBeantechs()
+        SpeedLimitFetcher.start(this)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         retryHandler.removeCallbacks(retryRunnable)
+        SpeedLimitFetcher.stop(this)
         try {
             dataListener?.let { controlService?.unRegisterDataChangedListener(packageName, it) }
         } catch (_: RemoteException) {}
