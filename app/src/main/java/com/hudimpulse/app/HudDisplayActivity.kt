@@ -100,7 +100,10 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != CarDataService.ACTION_CAR_DATA) return
             if (intent.hasExtra(CarDataService.EXTRA_SPEED_KMH)) {
-                speedPanel.speedKmh = intent.getIntExtra(CarDataService.EXTRA_SPEED_KMH, 0)
+                val raw = intent.getIntExtra(CarDataService.EXTRA_SPEED_KMH, 0)
+                // Cluster do carro mostra ~7% acima da velocidade real (GWM/Haval)
+                val adjusted = raw * 1.07 - raw / 180.0 * 0.02
+                speedPanel.speedKmh = adjusted.toInt()
             }
             if (intent.hasExtra(CarDataService.EXTRA_ENERGY_PERCENT)) {
                 speedPanel.energyPercent = intent.getFloatExtra(CarDataService.EXTRA_ENERGY_PERCENT, 0f)
@@ -108,6 +111,9 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             if (intent.hasExtra(CarDataService.EXTRA_SPEED_LIMIT_KMH)) {
                 val limit = intent.getIntExtra(CarDataService.EXTRA_SPEED_LIMIT_KMH, 0)
                 speedPanel.limitKmh = if (limit > 0) limit else -1
+            }
+            if (intent.hasExtra(CarDataService.EXTRA_ENGINE_RPM)) {
+                speedPanel.engineRpm = intent.getIntExtra(CarDataService.EXTRA_ENGINE_RPM, -1)
             }
         }
     }
@@ -120,6 +126,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
         window.setLayout(480, 240)
         buildUi()
         startService(Intent(this, CarDataService::class.java))
+        UpdateManager.checkForUpdate(this)
     }
 
     override fun onStart() {
@@ -283,6 +290,8 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             set(v) { field = v; invalidate() }
         var energyPercent: Float = 0f
             set(v) { field = v.coerceIn(-100f, 100f); invalidate() }
+        var engineRpm: Int = -1
+            set(v) { field = v; invalidate() }
 
         private val speedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             typeface  = Typeface.DEFAULT_BOLD
@@ -292,6 +301,11 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             color     = Color.argb(165, 255, 255, 255)
             typeface  = Typeface.DEFAULT_BOLD
             textAlign = Paint.Align.LEFT
+        }
+        private val rpmPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color     = Color.argb(180, 255, 255, 255)
+            typeface  = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.CENTER
         }
         private val circleFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE; style = Paint.Style.FILL
@@ -357,6 +371,17 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 val fm    = limitTextPaint.fontMetrics
                 val textY = rowY - (fm.ascent + fm.descent) / 2f
                 canvas.drawText(limitKmh.toString(), cx, textY, limitTextPaint)
+            }
+
+            // ── RPM do motor ICE (logo abaixo do km/h) ──
+            // Só desenha quando motor está ligado (> 0). PHEV: motor desligado fica em 0.
+            if (engineRpm > 0) {
+                rpmPaint.textSize = h * 0.074f
+                val rpmText = "${engineRpm} rpm"
+                val rpmFm   = rpmPaint.fontMetrics
+                val rpmRowY = rowY + h * 0.110f       // gap proporcional ao tamanho do "km/h"
+                val rpmY    = rpmRowY - (rpmFm.ascent + rpmFm.descent) / 2f
+                canvas.drawText(rpmText, w / 2f, rpmY, rpmPaint)
             }
 
             // ── Arco de energia em volta da velocidade ──

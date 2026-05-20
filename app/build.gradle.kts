@@ -1,7 +1,17 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+// Carrega credenciais de assinatura de local.properties (dev) ou env vars (CI)
+val localProps = Properties().also { props ->
+    rootProject.file("local.properties").takeIf { it.exists() }
+        ?.inputStream()?.use { props.load(it) }
+}
+fun signingProp(envKey: String, localKey: String = envKey): String =
+    System.getenv(envKey) ?: localProps.getProperty(localKey) ?: ""
 
 android {
     namespace = "com.hudimpulse.app"
@@ -10,21 +20,34 @@ android {
     defaultConfig {
         applicationId = "com.hudimpulse.app"
         minSdk = 24
-        targetSdk = 34 // ALTERADO: De 28 para 34 para cumprir as regras do Google Play
-        versionCode = 1
-        versionName = "1.0.0"
+        targetSdk = 34
+        versionCode = 2
+        versionName = "1.0.1"
+
+        buildConfigField("String", "GITHUB_REPO", "\"rafaelcs28/HudImpulse\"")
+    }
+
+    signingConfigs {
+        create("release") {
+            val storeFilePath = signingProp("SIGNING_STORE_FILE")
+            if (storeFilePath.isNotEmpty()) {
+                storeFile     = file(storeFilePath)
+                storePassword = signingProp("SIGNING_STORE_PASSWORD")
+                keyAlias      = signingProp("SIGNING_KEY_ALIAS")
+                keyPassword   = signingProp("SIGNING_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
-            // ADICIONADO: Ignora erros de Lint que travam o build de release
             isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
 
-    // ADICIONADO: Bloco Lint para evitar que o build pare por avisos de versões antigas
     lint {
         checkReleaseBuilds = false
         abortOnError = false
@@ -32,6 +55,7 @@ android {
 
     buildFeatures {
         aidl = true
+        buildConfig = true
     }
 
     compileOptions {

@@ -65,6 +65,7 @@ class CarDataService : Service() {
 
             controlService?.addListenerKey(packageName, arrayOf(KEY_SPEED))
             controlService?.addListenerKey(packageName, arrayOf(KEY_ENERGY))
+            controlService?.addListenerKey(packageName, arrayOf(KEY_ENGINE_RPM))
             // Registra todos os candidatos TSR como listeners — logcat mostrará qual dispara
             TSR_CANDIDATES.forEach { controlService?.addListenerKey(packageName, arrayOf(it)) }
             controlService?.registerDataChangedListener(packageName, listener)
@@ -121,6 +122,11 @@ class CarDataService : Service() {
                 intent.putExtra(EXTRA_ENERGY_PERCENT, percent)
                 sendBroadcast(intent)
             }
+            KEY_ENGINE_RPM -> {
+                val rpm = value.toFloatOrNull()?.toInt() ?: return
+                intent.putExtra(EXTRA_ENGINE_RPM, rpm)
+                sendBroadcast(intent)
+            }
             in TSR_CANDIDATES -> {
                 Log.i(TAG, "TSR hit! key=$key value=$value")
                 // Formato pode ser simples "60" ou par "{60,-2147483648}"
@@ -141,9 +147,11 @@ class CarDataService : Service() {
         const val EXTRA_SPEED_KMH       = "speed_kmh"
         const val EXTRA_ENERGY_PERCENT  = "energy_percent"    // float: >0 consumo, <0 regen
         const val EXTRA_SPEED_LIMIT_KMH = "speed_limit_kmh"  // int: limite da via (0 = desconhecido)
+        const val EXTRA_ENGINE_RPM      = "engine_rpm"        // int: RPM do motor ICE (0 = motor desligado)
 
         private const val KEY_SPEED       = "car.basic.vehicle_speed"
         private const val KEY_ENERGY      = "car.ev_info.energy_output_percentage"
+        private const val KEY_ENGINE_RPM  = "car.basic.engine_speed"
         private const val SERVICE_NAME    = "com.beantechs.intelligentvehiclecontrol"
         private const val RETRY_MS        = 5_000L
         private const val TAG             = "CarDataService"
