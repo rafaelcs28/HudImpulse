@@ -253,7 +253,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   // ── Labels: below both the sign AND the energy arc (regen sits at bottom) ──
   const energyArcR2  = h * 0.33;
   const labelStartY  = Math.max(rowY + signR * 2 + 8, speedCenterY + energyArcR2 + 12);
-  const labelGap     = h * 0.058;
+  const labelGap     = h * 0.080;
   const labelSize    = (h * 0.065).toFixed(0);
   ctx.font           = `bold ${labelSize}px sans-serif`;
   ctx.textAlign      = 'center';

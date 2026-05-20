@@ -441,7 +441,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             // ── Labels: abaixo da placa de limite E abaixo do arco de regen ──
             labelPaint.textSize = h * 0.065f
             val labelFm      = labelPaint.fontMetrics
-            val labelGap     = h * 0.058f
+            val labelGap     = h * 0.080f
             val labelStartY  = maxOf(rowY + signR * 2f + 8f, speedCenterY + energyArcR + 12f)
             val labelBaseline = labelStartY - (labelFm.ascent + labelFm.descent) / 2f
             var labelY = labelBaseline
