@@ -166,7 +166,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   const overPct = (limitKmh > 0 && speedKmh > limitKmh)
     ? (speedKmh - limitKmh)*100/limitKmh : 0;
 
-  const speedCenterY = y + h/2 - 15;
+  const speedCenterY = y + h/2 - 5;
 
   // ── Inner decorative circle ──
   ctx.beginPath();
@@ -203,7 +203,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
 
     // % energia na posição 9h
     ctx.fillStyle = rgba(color, 0.88);
-    ctx.font = `bold ${(h * 0.060).toFixed(0)}px sans-serif`;
+    ctx.font = `bold ${(h * 0.075).toFixed(0)}px sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     ctx.fillText((energyPct > 0 ? '▲ ' : '▼ ') + abs.toFixed(0) + '%', cx - r + 4, speedCenterY);
@@ -213,7 +213,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   if (engineRpm > 0) {
     const frac  = clamp(engineRpm, 0, MAX_RPM) / MAX_RPM;
     const sweep = frac * Math.PI;
-    const r     = h * 0.40;
+    const r     = h * 0.38;
     const color = frac > 0.83 ? '#C05555'
                 : frac > 0.50 ? '#C87941'
                 :               '#4A86C8';
@@ -228,7 +228,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
 
   // ── Velocidade ──
   const speedColor = overPct > 20 ? '#FF4444' : overPct > 0 ? '#FFEE44' : '#FFFFFF';
-  const speedSize  = (h * 0.386).toFixed(0);
+  const speedSize  = (h * 0.35).toFixed(0);
   ctx.fillStyle  = speedColor;
   ctx.font       = `bold ${speedSize}px sans-serif`;
   ctx.textAlign  = 'center';
@@ -236,22 +236,18 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   ctx.fillText(String(speedKmh), cx, speedCenterY);
 
   // ── km/h + placa ──
-  const rowY   = speedCenterY + h * 0.22;
+  const rowY   = speedCenterY + h * 0.21;
   const signR  = 13;
   const unitSz = (h * 0.074).toFixed(0);
   ctx.font     = `bold ${unitSz}px sans-serif`;
   ctx.textBaseline = 'middle';
 
   ctx.fillStyle = 'rgba(255,255,255,0.65)';
-  ctx.textAlign = 'left';
-  const kmhW = ctx.measureText('km/h').width;
-  const gap  = h * 0.025;
-  const totalW = limitKmh > 0 ? kmhW + gap + signR*2 : kmhW;
-  const groupX = cx - totalW/2;
-  ctx.fillText('km/h', groupX, rowY);
+  ctx.textAlign = 'center';
+  ctx.fillText('km/h', cx, rowY);
 
   if (limitKmh > 0) {
-    const scx = groupX + kmhW + gap + signR;
+    const scx = x + signR + 4;   // left edge of panel ≈ screen center
     ctx.beginPath();
     ctx.arc(scx, rowY, signR, 0, Math.PI*2);
     ctx.fillStyle = '#fff';

@@ -366,7 +366,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 (speedKmh - limitKmh) * 100f / limitKmh else 0f
 
             // ── Centro visual dos arcos (ligeiramente acima do centro geométrico) ──
-            val speedCenterY = h / 2f - 15f
+            val speedCenterY = h / 2f - 5f
 
             // ── Círculo decorativo interno ──
             val innerR = h * 0.32f
@@ -399,7 +399,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 }
 
                 // % energia na posição 9h
-                labelPaint.textSize  = h * 0.060f
+                labelPaint.textSize  = h * 0.075f
                 labelPaint.color     = energyColor
                 labelPaint.alpha     = 190
                 labelPaint.textAlign = Paint.Align.RIGHT
@@ -413,7 +413,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             }
 
             // ── Arco externo: RPM motor ICE ──
-            val rpmArcR = h * 0.40f
+            val rpmArcR = h * 0.38f
             if (engineRpm > 0) {
                 val rpmFraction = (engineRpm.coerceIn(0, MAX_RPM) / MAX_RPM.toFloat())
                 val rpmSweep    = rpmFraction * 180f
@@ -435,25 +435,22 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 overPct > 0f  -> Color.YELLOW
                 else          -> Color.WHITE
             }
-            speedPaint.textSize = h * 0.386f
+            speedPaint.textSize = h * 0.35f
             val speedFm = speedPaint.fontMetrics
             val speedY  = speedCenterY - (speedFm.ascent + speedFm.descent) / 2f
             canvas.drawText(speedKmh.toString(), cx, speedY, speedPaint)
 
             // ── Linha "km/h" + placa ──
-            val rowY = speedCenterY + h * 0.22f
+            val rowY = speedCenterY + h * 0.21f
             val signR = 13f
-            unitPaint.textSize = h * 0.074f
-            val kmhW   = unitPaint.measureText("km/h")
-            val gap    = h * 0.025f
-            val totalW = if (limitKmh > 0) kmhW + gap + signR * 2f else kmhW
-            val groupX = cx - totalW / 2f
+            unitPaint.textSize  = h * 0.074f
+            unitPaint.textAlign = Paint.Align.CENTER
             val unitFm = unitPaint.fontMetrics
             val unitY  = rowY - (unitFm.ascent + unitFm.descent) / 2f
-            canvas.drawText("km/h", groupX, unitY, unitPaint)
+            canvas.drawText("km/h", cx, unitY, unitPaint)
 
             if (limitKmh > 0) {
-                val signCx = groupX + kmhW + gap + signR
+                val signCx = signR + 4f   // left edge of panel ≈ screen center
                 canvas.drawCircle(signCx, rowY, signR, circleFill)
                 circleBorder.strokeWidth = signR * 0.25f
                 circleBorder.color = if (limitSource == CarDataService.SOURCE_TSR)
