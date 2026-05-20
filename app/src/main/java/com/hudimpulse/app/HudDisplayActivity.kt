@@ -281,7 +281,12 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
         }
     }
 
-    // ── Speed panel (right half: 240×240) ──
+    // ── Speed panel (right half: 240×240) — Layout C: duplo arco RPM+energia ──
+    //
+    //  Arco externo (maior raio): RPM do motor ICE — varre de 9h→3h pelo topo
+    //  Arco interno (menor raio): energia EV — topo=consumo, baixo=regen
+    //  Círculo fino estático: borda decorativa ao redor da velocidade
+    //
     private inner class SpeedPanelView(context: Context) : View(context) {
 
         var speedKmh: Int = 0
@@ -293,6 +298,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
         var engineRpm: Int = -1
             set(v) { field = v; invalidate() }
 
+        // ── Paints ──
         private val speedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             typeface  = Typeface.DEFAULT_BOLD
             textAlign = Paint.Align.CENTER
@@ -301,11 +307,6 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             color     = Color.argb(165, 255, 255, 255)
             typeface  = Typeface.DEFAULT_BOLD
             textAlign = Paint.Align.LEFT
-        }
-        private val rpmPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color     = Color.argb(180, 255, 255, 255)
-            typeface  = Typeface.DEFAULT_BOLD
-            textAlign = Paint.Align.CENTER
         }
         private val circleFill = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE; style = Paint.Style.FILL
@@ -316,123 +317,148 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
         private val limitTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.BLACK; typeface = Typeface.DEFAULT_BOLD; textAlign = Paint.Align.CENTER
         }
-        private val arcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        // Arco interno — energia EV
+        private val energyArcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style       = Paint.Style.STROKE
-            strokeWidth = 6f
+            strokeWidth = 5f
             strokeCap   = Paint.Cap.ROUND
         }
-        private val arcNumPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            typeface  = Typeface.DEFAULT_BOLD
-            textAlign = Paint.Align.CENTER   // centralizado no ponto 9h do arco
+        // Arco externo — RPM motor ICE
+        private val rpmArcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style       = Paint.Style.STROKE
+            strokeWidth = 8f
+            strokeCap   = Paint.Cap.ROUND
         }
-        private val arcRect = RectF()
+        // Círculo decorativo interno
+        private val innerCirclePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color  = Color.argb(55, 255, 255, 255)
+            style  = Paint.Style.STROKE
+            strokeWidth = 1.5f
+        }
+        // Labels pequenos nas extremidades dos arcos
+        private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            typeface  = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.CENTER
+        }
+
+        private val energyArcRect = RectF()
+        private val rpmArcRect    = RectF()
+
+        private companion object { const val MAX_RPM = 6000 }
 
         init { setBackgroundColor(Color.BLACK) }
 
         override fun onDraw(canvas: Canvas) {
-            val w = width.toFloat()
-            val h = height.toFloat()
-            // Cor da velocidade: branco ≤ limite | amarelo > limite | vermelho > 20% acima
+            val w  = width.toFloat()
+            val h  = height.toFloat()
+            val cx = w / 2f
+
             val overPct = if (limitKmh > 0 && speedKmh > limitKmh)
                 (speedKmh - limitKmh) * 100f / limitKmh else 0f
 
-            // ── Velocidade: subido 20px (h/2 - 20) ──
+            // ── Centro visual dos arcos (ligeiramente acima do centro geométrico) ──
+            val speedCenterY = h / 2f - 15f
+
+            // ── Círculo decorativo interno ──
+            val innerR = h * 0.32f
+            canvas.drawCircle(cx, speedCenterY, innerR, innerCirclePaint)
+
+            // ── Arco interno: energia EV ──
+            // Consumo (+): semicírculo superior, 9h → 3h sentido horário
+            // Regen  (-): semicírculo inferior, 3h → 9h sentido horário
+            if (energyPercent != 0f) {
+                val abs   = kotlin.math.abs(energyPercent)
+                val sweep = (abs / 100f) * 180f
+                val energyArcR = h * 0.38f
+                val energyColor = when {
+                    energyPercent < 0f  -> Color.parseColor("#52B788")   // verde regen
+                    energyPercent > 75f -> Color.parseColor("#C05555")   // vermelho alto consumo
+                    energyPercent > 50f -> Color.parseColor("#C87941")
+                    energyPercent > 30f -> Color.parseColor("#C9A84C")
+                    else                -> Color.parseColor("#4A86C8")   // azul baixo consumo
+                }
+                energyArcPaint.color = energyColor
+                energyArcPaint.alpha = 210
+                energyArcRect.set(cx - energyArcR, speedCenterY - energyArcR,
+                                  cx + energyArcR, speedCenterY + energyArcR)
+                if (energyPercent > 0f) {
+                    canvas.drawArc(energyArcRect, 180f, sweep, false, energyArcPaint)
+                } else {
+                    canvas.drawArc(energyArcRect, 0f, sweep, false, energyArcPaint)
+                }
+
+                // Label energia na extremidade do arco (lado direito = 3h)
+                labelPaint.color    = energyColor
+                labelPaint.alpha    = 200
+                labelPaint.textSize = h * 0.072f
+                val energyLabel = if (energyPercent > 0f) "▲${abs.toInt()}%" else "▼${abs.toInt()}%"
+                val labelX = cx + energyArcR + h * 0.01f
+                val labelFm = labelPaint.fontMetrics
+                val labelY  = speedCenterY - (labelFm.ascent + labelFm.descent) / 2f
+                canvas.drawText(energyLabel, labelX, labelY, labelPaint)
+            }
+
+            // ── Arco externo: RPM motor ICE ──
+            // Semicírculo superior, 9h → 3h sentido horário
+            // Motor desligado (rpm ≤ 0): arco não desenhado
+            if (engineRpm > 0) {
+                val rpmFraction = (engineRpm.coerceIn(0, MAX_RPM) / MAX_RPM.toFloat())
+                val rpmSweep    = rpmFraction * 180f
+                val rpmArcR     = h * 0.46f
+                val rpmColor = when {
+                    rpmFraction > 0.83f -> Color.parseColor("#C05555")   // vermelho > 5000 rpm
+                    rpmFraction > 0.50f -> Color.parseColor("#C87941")   // laranja > 3000 rpm
+                    else                -> Color.parseColor("#4A86C8")   // azul < 3000 rpm
+                }
+                rpmArcPaint.color = rpmColor
+                rpmArcPaint.alpha = 230
+                rpmArcRect.set(cx - rpmArcR, speedCenterY - rpmArcR,
+                               cx + rpmArcR, speedCenterY + rpmArcR)
+                canvas.drawArc(rpmArcRect, 180f, rpmSweep, false, rpmArcPaint)
+
+                // Label RPM na extremidade esquerda (9h)
+                labelPaint.color    = rpmColor
+                labelPaint.alpha    = 190
+                labelPaint.textSize = h * 0.072f
+                val rpmLabel = if (engineRpm >= 1000) "${engineRpm / 100 / 10.0}k" else "$engineRpm"
+                val rpmLabelX = cx - rpmArcR - h * 0.01f
+                val rpmFm     = labelPaint.fontMetrics
+                val rpmLabelY = speedCenterY - (rpmFm.ascent + rpmFm.descent) / 2f
+                canvas.drawText(rpmLabel, rpmLabelX, rpmLabelY, labelPaint)
+            }
+
+            // ── Velocidade ──
             speedPaint.color = when {
                 overPct > 20f -> Color.RED
                 overPct > 0f  -> Color.YELLOW
                 else          -> Color.WHITE
             }
             speedPaint.textSize = h * 0.386f
-            val speedFm      = speedPaint.fontMetrics
-            val speedCenterY = h / 2f - 20f            // 20px acima do centro
-            val speedY       = speedCenterY - (speedFm.ascent + speedFm.descent) / 2f
-            canvas.drawText(speedKmh.toString(), w / 2f, speedY, speedPaint)
+            val speedFm = speedPaint.fontMetrics
+            val speedY  = speedCenterY - (speedFm.ascent + speedFm.descent) / 2f
+            canvas.drawText(speedKmh.toString(), cx, speedY, speedPaint)
 
             // ── Linha "km/h" + placa ──
-            val rowY = speedCenterY + h * 0.22f        // dentro do arco, logo abaixo do número
-
-            val signR  = 13f   // placa pequena ao lado do km/h
+            val rowY = speedCenterY + h * 0.22f
+            val signR = 13f
             unitPaint.textSize = h * 0.074f
             val kmhW   = unitPaint.measureText("km/h")
             val gap    = h * 0.025f
             val totalW = if (limitKmh > 0) kmhW + gap + signR * 2f else kmhW
-            val groupX = w / 2f - totalW / 2f
-
+            val groupX = cx - totalW / 2f
             val unitFm = unitPaint.fontMetrics
             val unitY  = rowY - (unitFm.ascent + unitFm.descent) / 2f
             canvas.drawText("km/h", groupX, unitY, unitPaint)
 
             if (limitKmh > 0) {
-                val cx = groupX + kmhW + gap + signR
-                canvas.drawCircle(cx, rowY, signR, circleFill)
+                val signCx = groupX + kmhW + gap + signR
+                canvas.drawCircle(signCx, rowY, signR, circleFill)
                 circleBorder.strokeWidth = signR * 0.25f
-                canvas.drawCircle(cx, rowY, signR, circleBorder)
+                canvas.drawCircle(signCx, rowY, signR, circleBorder)
                 limitTextPaint.textSize = if (limitKmh >= 100) 12f else 14f
                 val fm    = limitTextPaint.fontMetrics
                 val textY = rowY - (fm.ascent + fm.descent) / 2f
-                canvas.drawText(limitKmh.toString(), cx, textY, limitTextPaint)
-            }
-
-            // ── RPM do motor ICE (logo abaixo do km/h) ──
-            // Só desenha quando motor está ligado (> 0). PHEV: motor desligado fica em 0.
-            if (engineRpm > 0) {
-                rpmPaint.textSize = h * 0.074f
-                val rpmText = "${engineRpm} rpm"
-                val rpmFm   = rpmPaint.fontMetrics
-                val rpmRowY = rowY + h * 0.110f       // gap proporcional ao tamanho do "km/h"
-                val rpmY    = rpmRowY - (rpmFm.ascent + rpmFm.descent) / 2f
-                canvas.drawText(rpmText, w / 2f, rpmY, rpmPaint)
-            }
-
-            // ── Arco de energia em volta da velocidade ──
-            // 0% = esquerda (180°), 100% = direita (0°/360°)
-            // Positivo: arco pela parte de CIMA (consumo)
-            // Negativo: arco pela parte de BAIXO (regen, verde)
-            if (energyPercent != 0f) {
-                val abs   = kotlin.math.abs(energyPercent)
-                val arcR  = h * 0.38f          // ~91px — cabe 3 dígitos + km/h dentro do arco
-                val sweep = (abs / 100f) * 180f // graus: 0→180 (meia-volta)
-
-                val color = when {
-                    energyPercent < 0f  -> Color.parseColor("#52B788")
-                    energyPercent > 75f -> Color.parseColor("#C05555")
-                    energyPercent > 50f -> Color.parseColor("#C87941")
-                    energyPercent > 30f -> Color.parseColor("#C9A84C")
-                    else                -> Color.parseColor("#4A86C8")
-                }
-
-                val cx = w / 2f
-                arcRect.set(cx - arcR, speedCenterY - arcR, cx + arcR, speedCenterY + arcR)
-
-                // Número da % centralizado no ponto de início do arco (9h = cx−arcR)
-                // O texto fica logo abaixo do ponto 9h; arco inicia acima do topo do texto
-                arcNumPaint.color    = color
-                arcNumPaint.alpha    = 217
-                arcNumPaint.textSize = h * 0.090f   // ~22px
-                val numText   = "${abs.toInt()}%"
-                val numFm     = arcNumPaint.fontMetrics
-                val arcTextGap = 8f  // px fixos entre ponto 9h (topo do arco) e topo do texto
-                // baseline = speedCenterY + arcTextGap - ascent  (ascent é negativo → soma positiva)
-                val numBaseline = speedCenterY + arcTextGap - numFm.ascent
-                canvas.drawText(numText, cx - arcR, numBaseline, arcNumPaint)
-
-                arcPaint.color = color
-                arcPaint.alpha = 217
-                if (energyPercent > 0f) {
-                    // Consumo: inicia em 180° (ponto 9h, acima do texto), varre no sentido horário
-                    canvas.drawArc(arcRect, 180f, sweep, false, arcPaint)
-                } else {
-                    // Regen: inicia abaixo do texto com o mesmo gap de 8px (simétrico ao consumo)
-                    // Calcula o ângulo no círculo onde y = borda inferior do texto + arcTextGap
-                    val textBottom      = numBaseline + numFm.descent
-                    val regenStartY     = textBottom + arcTextGap
-                    val sinVal          = ((regenStartY - speedCenterY) / arcR).coerceIn(-1f, 1f)
-                    // Quadrante esquerdo-inferior: ângulo = 180° − arcsin(sinVal)
-                    val regenStartAngle = 180f - (kotlin.math.asin(sinVal.toDouble()) * (180.0 / kotlin.math.PI)).toFloat()
-                    // 100% → percorre regenStartAngle graus no sentido anti-horário até 0° (direita)
-                    val regenSweep      = (abs / 100f) * regenStartAngle
-                    canvas.drawArc(arcRect, regenStartAngle, -regenSweep, false, arcPaint)
-                }
+                canvas.drawText(limitKmh.toString(), signCx, textY, limitTextPaint)
             }
         }
     }
