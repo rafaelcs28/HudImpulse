@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  body { background: #111; display: flex; gap: 40px; padding: 40px; align-items: flex-start; flex-wrap: wrap; }
+  .card { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  label { color: #aaa; font-family: monospace; font-size: 13px; }
+  canvas { border: 1px solid #333; background: #000; }
+</style>
+</head>
+<body>
+<script>
+function drawRoundabout(canvas, exitNumber, size) {
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, size, size);
+
+  const cx = size / 2, cy = size / 2;
+  const r  = size * 0.40;
+  const cr = r * 0.50;
+
+  ctx.strokeStyle = '#fff';
+  ctx.fillStyle   = '#fff';
+  ctx.lineCap     = 'butt';
+  ctx.lineWidth   = r * 0.13;
+
+  // ── Arco CCW 300° ──
+  const startDeg = 120 * Math.PI / 180;
+  const endDeg   = (120 - 300) * Math.PI / 180;  // = -180° = 180°
+  ctx.beginPath();
+  ctx.arc(cx, cy, cr, startDeg, endDeg, true);  // true = CCW
+  ctx.stroke();
+
+  // ── Ponta de seta no final do arco (180°) ──
+  const eAngle = endDeg;
+  const ex = cx + cr * Math.cos(eAngle);
+  const ey = cy + cr * Math.sin(eAngle);
+  const tangX =  Math.sin(eAngle);
+  const tangY = -Math.cos(eAngle);
+  const hs    = r * 0.22;
+  const perpX = -tangY * hs * 0.5;
+  const perpY =  tangX * hs * 0.5;
+
+  ctx.beginPath();
+  ctx.moveTo(ex + tangX * hs * 0.5, ey + tangY * hs * 0.5);
+  ctx.lineTo(ex - tangX * hs * 0.5 + perpX, ey - tangY * hs * 0.5 + perpY);
+  ctx.lineTo(ex - tangX * hs * 0.5 - perpX, ey - tangY * hs * 0.5 - perpY);
+  ctx.closePath();
+  ctx.fill();
+
+  // ── Seta de entrada (baixo → círculo) ──
+  ctx.lineCap  = 'round';
+  ctx.lineWidth = r * 0.13;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + r);
+  ctx.lineTo(cx, cy + cr + r * 0.05);
+  ctx.stroke();
+
+  // ── Número da saída ──
+  if (exitNumber > 0) {
+    const fs = r * 0.62;
+    ctx.font      = `bold ${fs}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(exitNumber.toString(), cx, cy + fs * 0.05);
+  }
+}
+
+function drawStraight(canvas, size) {
+  const ctx = canvas.getContext('2d');
+  const cx = size/2, cy = size/2, r = size*0.40;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.moveTo(cx,           cy - r);
+  ctx.lineTo(cx - r*0.4f, cy - r*0.3);
+  ctx.lineTo(cx - r*0.15,  cy - r*0.3);
+  ctx.lineTo(cx - r*0.15,  cy + r);
+  ctx.lineTo(cx + r*0.15,  cy + r);
+  ctx.lineTo(cx + r*0.15,  cy - r*0.3);
+  ctx.lineTo(cx + r*0.4,   cy - r*0.3);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawSlightTurn(canvas, size, side) {
+  const ctx = canvas.getContext('2d');
+  const cx = size/2, cy = size/2, r = size*0.40;
+  const flip = side === 'left' ? -1 : 1;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath();
+  ctx.moveTo(cx + flip*r*0.7, cy - r*0.7);
+  ctx.lineTo(cx,              cy - r*0.5);
+  ctx.lineTo(cx + flip*r*0.2, cy - r*0.3);
+  ctx.lineTo(cx - flip*r*0.1, cy + r);
+  ctx.lineTo(cx + flip*r*0.2, cy + r);
+  ctx.lineTo(cx + flip*r*0.5, cy - r*0.1);
+  ctx.lineTo(cx + flip*r*0.5, cy - r*0.5);
+  ctx.closePath();
+  ctx.fill();
+}
+
+const items = [
+  { label: 'Rotatória • saída 1', fn: c => drawRoundabout(c, 1, 160) },
+  { label: 'Rotatória • saída 2', fn: c => drawRoundabout(c, 2, 160) },
+  { label: 'Rotatória • saída 3', fn: c => drawRoundabout(c, 3, 160) },
+  { label: 'Rotatória • saída s/ nº', fn: c => drawRoundabout(c, 0, 160) },
+];
+
+items.forEach(item => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const lbl = document.createElement('label');
+  lbl.textContent = item.label;
+  const cv = document.createElement('canvas');
+  cv.width = 160; cv.height = 160;
+  item.fn(cv);
+  card.appendChild(cv);
+  card.appendChild(lbl);
+  document.body.appendChild(card);
+});
+</script>
+</body>
+</html>
