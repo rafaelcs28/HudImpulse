@@ -366,17 +366,17 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 (speedKmh - limitKmh) * 100f / limitKmh else 0f
 
             // ── Centro visual dos arcos (ligeiramente acima do centro geométrico) ──
-            val speedCenterY = h / 2f - 5f
+            val speedCenterY = h / 2f
 
             // ── Círculo decorativo interno ──
-            val innerR = h * 0.32f
+            val innerR = h * 0.26f
             canvas.drawCircle(cx, speedCenterY, innerR, innerCirclePaint)
 
             // ── Arco interno: energia EV (r=0.36h) ──
             // Consumo (+): 9h+15° → topo → 3h  (horário)
             // Regen  (-): 9h-15° → baixo → 3h  (anti-horário, sweep negativo)
             // Ambos partem do lado esquerdo, sweep máx 165° → terminam em 3h a 100%
-            val energyArcR = h * 0.36f
+            val energyArcR = h * 0.30f
             if (energyPercent != 0f) {
                 val abs      = kotlin.math.abs(energyPercent)
                 val maxSweep = 165f          // de 9h±15° até 3h
@@ -413,7 +413,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             }
 
             // ── Arco externo: RPM motor ICE ──
-            val rpmArcR = h * 0.38f
+            val rpmArcR = h * 0.35f
             if (engineRpm > 0) {
                 val rpmFraction = (engineRpm.coerceIn(0, MAX_RPM) / MAX_RPM.toFloat())
                 val rpmSweep    = rpmFraction * 180f
