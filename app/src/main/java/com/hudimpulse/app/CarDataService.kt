@@ -132,12 +132,15 @@ class CarDataService : Service() {
             }
             in TSR_CANDIDATES -> {
                 Log.i(TAG, "TSR hit! key=$key value=$value")
+                // Chaves de status/tipo/distância são informativas — não contêm limite
+                if (key != "car.map.tsr.nav_speed_limit" &&
+                    key != "car.map.tsr.nav_trafic_sign") return
                 // Formato pode ser simples "60" ou par "{60,-2147483648}"
                 // -2147483648 (Int.MIN_VALUE) = sentinela Beantechs para "sem dado"
                 val limit = parseTsrValue(value) ?: run {
                     Log.d(TAG, "TSR: sem dado válido em '$value'"); return
                 }
-                Log.i(TAG, "Speed limit: $limit km/h")
+                Log.i(TAG, "Speed limit: $limit km/h via $key")
                 intent.putExtra(EXTRA_SPEED_LIMIT_KMH, limit)
                 sendBroadcast(intent)
             }
@@ -159,20 +162,17 @@ class CarDataService : Service() {
         private const val RETRY_MS        = 5_000L
         private const val TAG             = "CarDataService"
 
-        // Candidatos para leitura de placa de velocidade (TSR).
-        // O fetchData e o listener de todos eles são ativados na conexão.
-        // Verificar no logcat qual chave retorna valor ao passar por uma placa.
+        // Chaves TSR confirmadas via CarConstants do carro.
+        // nav_speed_limit é a chave principal; as demais são companheiras que
+        // indicam status, tipo e sinal completo — todas monitoradas para diagnóstico.
         val TSR_CANDIDATES = arrayOf(
             "car.map.tsr.nav_speed_limit",
-            "car.map.tsr.speed_limit",
-            "car.tsr.speed_limit",
-            "car.tsr.nav_speed_limit",
-            "car.map.speed_limit",
-            "car.map.nav_speed_limit",
-            "car.adas.tsr.speed_limit",
-            "car.map.tsr.current_speed_limit",
-            "car.map.tsr.limit",
-            "car.basic.road_speed_limit"
+            "car.map.tsr.nav_speed_limit_sign_status",
+            "car.map.tsr.nav_speed_limit_type",
+            "car.map.tsr.nav_trafic_sign",
+            "car.map.tsr.nav_to_traffic_eye_distance",
+            "car.map.tsr.nav_road_type",
+            "car.map.tsr.nav_contry_type"
         )
     }
 }
