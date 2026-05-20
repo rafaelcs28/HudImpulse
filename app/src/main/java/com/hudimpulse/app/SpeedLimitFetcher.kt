@@ -12,23 +12,13 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
-/**
- * Fetches road speed limits from HERE Roads API v1 using GPS position.
- * Queries only when the car has moved ≥ MIN_DISTANCE_M since the last call
- * to avoid burning through the 250k/month free-tier quota.
- *
- * API key: add `here.api.key=XXX` to local.properties (dev) or set the
- * HERE_API_KEY environment variable for CI/release builds.
- * Register at developer.here.com → Projects → API Keys.
- */
 object SpeedLimitFetcher {
 
-    private const val TAG           = "SpeedLimit"
-    private const val MIN_DISTANCE  = 100f      // metres between queries
-    private const val MIN_TIME_MS   = 15_000L   // minimum 15 s between GPS callbacks
-    private const val TIMEOUT_MS    = 6_000
+    private const val TAG          = "SpeedLimit"
+    private const val MIN_DISTANCE = 100f
+    private const val MIN_TIME_MS  = 15_000L
+    private const val TIMEOUT_MS   = 6_000
 
-    // HERE Roads v1 — returns speedLimit in km/h for Brazil
     private const val BASE_URL = "https://roads.ls.hereapi.com/roads/v1/speedlimits"
 
     private var appContext: Context? = null
@@ -38,34 +28,57 @@ object SpeedLimitFetcher {
         @Suppress("OVERRIDE_DEPRECATION")
         override fun onStatusChanged(p: String?, s: Int, e: Bundle?) {}
         override fun onProviderEnabled(p: String) {}
-        override fun onProviderDisabled(p: String) {
-            Log.w(TAG, "GPS provider disabled: $p")
-        }
+        override fun onProviderDisabled(p: String) { Log.w(TAG, "provider disabled: $p") }
     }
 
     fun start(context: Context) {
-        if (BuildConfig.HERE_API_KEY.isEmpty()) {
+        val keyLen = BuildConfig.HERE_API_KEY.length
+        Log.i(TAG, "HERE_API_KEY length=$keyLen")
+        if (keyLen == 0) {
             Log.w(TAG, "HERE_API_KEY not set — speed limit via GPS disabled")
             return
         }
         if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            Log.w(TAG, "ACCESS_FINE_LOCATION not granted — speed limit via GPS disabled")
+            Log.w(TAG, "ACCESS_FINE_LOCATION not granted")
             return
         }
+
         appContext = context.applicationContext
         val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        try {
-            lm.requestLocationUpdates(
-                LocationManager.GPS_PROVIDER,
-                MIN_TIME_MS,
-                MIN_DISTANCE,
-                locationListener
-            )
-            Log.i(TAG, "GPS listener registered (min ${MIN_DISTANCE.toInt()}m / ${MIN_TIME_MS/1000}s)")
-        } catch (e: Exception) {
-            Log.w(TAG, "Could not register GPS listener: ${e.message}")
+
+        // Log provedores disponíveis para diagnóstico
+        val providers = lm.getProviders(true)
+        Log.i(TAG, "Available location providers: $providers")
+
+        // Consulta imediata com última posição conhecida (não espera 100m)
+        val last = providers.mapNotNull { p ->
+            try { lm.getLastKnownLocation(p) } catch (_: Exception) { null }
+        }.maxByOrNull { it.time }
+
+        if (last != null) {
+            Log.i(TAG, "Using last known location: ${last.latitude},${last.longitude} provider=${last.provider}")
+            query(last)
+        } else {
+            Log.w(TAG, "No last known location available")
         }
+
+        // Registra listener em todos os provedores disponíveis (GPS + rede)
+        var registered = 0
+        for (provider in listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)) {
+            if (lm.isProviderEnabled(provider)) {
+                try {
+                    lm.requestLocationUpdates(provider, MIN_TIME_MS, MIN_DISTANCE, locationListener)
+                    Log.i(TAG, "Listener registered on $provider (min ${MIN_DISTANCE.toInt()}m / ${MIN_TIME_MS / 1000}s)")
+                    registered++
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not register on $provider: ${e.message}")
+                }
+            } else {
+                Log.w(TAG, "Provider not enabled: $provider")
+            }
+        }
+        if (registered == 0) Log.e(TAG, "No location provider available — sign will not update")
     }
 
     fun stop(context: Context) {
@@ -79,6 +92,7 @@ object SpeedLimitFetcher {
         Thread {
             try {
                 val url = "$BASE_URL?path=${loc.latitude},${loc.longitude}&apiKey=$key"
+                Log.d(TAG, "Querying: $url")
                 val conn = URL(url).openConnection() as HttpURLConnection
                 conn.connectTimeout = TIMEOUT_MS
                 conn.readTimeout    = TIMEOUT_MS
@@ -86,18 +100,19 @@ object SpeedLimitFetcher {
 
                 val code = conn.responseCode
                 if (code != 200) {
-                    Log.w(TAG, "HERE HTTP $code at (${loc.latitude}, ${loc.longitude})")
+                    val err = try { conn.errorStream?.bufferedReader()?.readText() } catch (_: Exception) { null }
+                    Log.w(TAG, "HERE HTTP $code — body: $err")
                     conn.disconnect()
                     return@Thread
                 }
 
                 val body = conn.inputStream.bufferedReader().readText()
                 conn.disconnect()
-                Log.d(TAG, "HERE response: $body")
+                Log.i(TAG, "HERE response: $body")
 
                 val limits = JSONObject(body).getJSONArray("speedLimits")
                 if (limits.length() == 0) {
-                    Log.d(TAG, "No speed limit data at (${loc.latitude}, ${loc.longitude})")
+                    Log.d(TAG, "No speed limit at (${loc.latitude}, ${loc.longitude})")
                     return@Thread
                 }
 
