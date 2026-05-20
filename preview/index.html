@@ -167,35 +167,38 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // ── Energy arc (inner, r=0.33h) ──
+  // ── Energy arc (inner, r=0.36h) ──
+  // Consumo: 9h+15° → topo → 3h  (horário)
+  // Regen:   9h-15° → baixo → 3h (anti-horário) — ambos saem do lado esquerdo
   if (energyPct !== 0) {
-    const abs   = Math.abs(energyPct);
-    const sweep = (abs/100) * Math.PI;   // 0→π radians
-    const r     = h * 0.33;
-    const color = energyPct < 0   ? '#52B788'
-                : energyPct > 75  ? '#C05555'
-                : energyPct > 50  ? '#C87941'
-                : energyPct > 30  ? '#C9A84C'
-                :                   '#4A86C8';
+    const abs      = Math.abs(energyPct);
+    const r        = h * 0.36;
+    const off      = Math.PI / 12;       // 15°
+    const maxSweep = Math.PI - off;      // 165° — de 9h±15° até 3h
+    const sweep    = (abs/100) * maxSweep;
+    const color    = energyPct < 0   ? '#52B788'
+                   : energyPct > 75  ? '#C05555'
+                   : energyPct > 50  ? '#C87941'
+                   : energyPct > 30  ? '#C9A84C'
+                   :                   '#4A86C8';
 
-    const off = Math.PI / 12; // 15° — abre espaço em 9h para o label
     ctx.beginPath();
     if (energyPct > 0) {
       ctx.arc(cx, speedCenterY, r, Math.PI + off, Math.PI + off + sweep);
     } else {
-      ctx.arc(cx, speedCenterY, r, off, off + sweep);
+      ctx.arc(cx, speedCenterY, r, Math.PI - off, Math.PI - off - sweep, true);
     }
     ctx.strokeStyle = rgba(color, 0.82);
     ctx.lineWidth = 5;
     ctx.lineCap = 'round';
     ctx.stroke();
 
-    // % energia na posição 9h (ponta esquerda)
+    // % energia na posição 9h
     ctx.fillStyle = rgba(color, 0.88);
     ctx.font = `bold ${(h * 0.060).toFixed(0)}px sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillText((energyPct > 0 ? '▲ ' : '▼ ') + abs.toFixed(0) + '%', cx - r, speedCenterY);
+    ctx.fillText((energyPct > 0 ? '▲ ' : '▼ ') + abs.toFixed(0) + '%', cx - r + 4, speedCenterY);
   }
 
   // ── RPM arc (outer, r=0.40h) ──

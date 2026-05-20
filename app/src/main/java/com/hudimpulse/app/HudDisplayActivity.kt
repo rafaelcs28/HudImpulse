@@ -362,13 +362,15 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             val innerR = h * 0.32f
             canvas.drawCircle(cx, speedCenterY, innerR, innerCirclePaint)
 
-            // ── Arco interno: energia EV ──
-            // Consumo (+): semicírculo superior, 9h → 3h sentido horário
-            // Regen  (-): semicírculo inferior, 3h → 9h sentido horário
-            val energyArcR = h * 0.33f
+            // ── Arco interno: energia EV (r=0.36h) ──
+            // Consumo (+): 9h+15° → topo → 3h  (horário)
+            // Regen  (-): 9h-15° → baixo → 3h  (anti-horário, sweep negativo)
+            // Ambos partem do lado esquerdo, sweep máx 165° → terminam em 3h a 100%
+            val energyArcR = h * 0.36f
             if (energyPercent != 0f) {
-                val abs   = kotlin.math.abs(energyPercent)
-                val sweep = (abs / 100f) * 180f
+                val abs      = kotlin.math.abs(energyPercent)
+                val maxSweep = 165f          // de 9h±15° até 3h
+                val sweep    = (abs / 100f) * maxSweep
                 val energyColor = when {
                     energyPercent < 0f  -> Color.parseColor("#52B788")
                     energyPercent > 75f -> Color.parseColor("#C05555")
@@ -380,14 +382,13 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 energyArcPaint.alpha = 210
                 energyArcRect.set(cx - energyArcR, speedCenterY - energyArcR,
                                   cx + energyArcR, speedCenterY + energyArcR)
-                // 15° offset abre espaço em 9h para o label
                 if (energyPercent > 0f) {
                     canvas.drawArc(energyArcRect, 195f, sweep, false, energyArcPaint)
                 } else {
-                    canvas.drawArc(energyArcRect, 15f, sweep, false, energyArcPaint)
+                    canvas.drawArc(energyArcRect, 165f, -sweep, false, energyArcPaint)
                 }
 
-                // % energia na posição 9h (ponta esquerda do arco)
+                // % energia na posição 9h
                 labelPaint.textSize  = h * 0.060f
                 labelPaint.color     = energyColor
                 labelPaint.alpha     = 190
@@ -395,7 +396,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 val eLabelFm  = labelPaint.fontMetrics
                 val eLabelStr = if (energyPercent > 0f) "▲ ${abs.toInt()}%" else "▼ ${abs.toInt()}%"
                 canvas.drawText(eLabelStr,
-                    cx - energyArcR,
+                    cx - energyArcR + 4f,
                     speedCenterY - (eLabelFm.ascent + eLabelFm.descent) / 2f,
                     labelPaint)
                 labelPaint.textAlign = Paint.Align.CENTER

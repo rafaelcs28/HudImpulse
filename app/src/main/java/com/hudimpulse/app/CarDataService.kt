@@ -123,7 +123,8 @@ class CarDataService : Service() {
                 sendBroadcast(intent)
             }
             KEY_ENGINE_RPM -> {
-                val rpm = value.toFloatOrNull()?.toInt() ?: return
+                // A chave retorna ex.: 2.0 (não 2000) — multiplica por 1000
+                val rpm = ((value.toFloatOrNull() ?: return) * 1000).toInt()
                 intent.putExtra(EXTRA_ENGINE_RPM, rpm)
                 sendBroadcast(intent)
             }
