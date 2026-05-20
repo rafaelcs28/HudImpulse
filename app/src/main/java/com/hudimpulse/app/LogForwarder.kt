@@ -5,13 +5,15 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Sends log lines to the remote log server (tools/log_server.py on Mac Mini).
- * Configured via BuildConfig.LOG_SERVER_URL (local.properties → log.server.url).
- * Silent no-op when URL is empty.
+ * Forwards log lines to ntfy.sh (free push service) so they can be
+ * monitored in real time on any device with internet access.
+ *
+ * Topic: hud-impulse-raf28  (obscure enough to avoid noise)
+ * Monitor on Mac Mini: bash tools/watch_logs.sh
  */
 object LogForwarder {
 
-    private val url = BuildConfig.LOG_SERVER_URL.takeIf { it.isNotEmpty() }
+    private const val NTFY_URL = "https://ntfy.sh/hud-impulse-raf28"
 
     fun i(tag: String, msg: String) { Log.i(tag, msg); send("I/$tag: $msg") }
     fun w(tag: String, msg: String) { Log.w(tag, msg); send("W/$tag: $msg") }
@@ -19,14 +21,13 @@ object LogForwarder {
     fun d(tag: String, msg: String) { Log.d(tag, msg); send("D/$tag: $msg") }
 
     private fun send(line: String) {
-        val target = url ?: return
         Thread {
             try {
-                val conn = URL(target).openConnection() as HttpURLConnection
+                val conn = URL(NTFY_URL).openConnection() as HttpURLConnection
                 conn.requestMethod  = "POST"
                 conn.doOutput       = true
-                conn.connectTimeout = 2_000
-                conn.readTimeout    = 2_000
+                conn.connectTimeout = 4_000
+                conn.readTimeout    = 4_000
                 val bytes = line.toByteArray()
                 conn.setFixedLengthStreamingMode(bytes.size)
                 conn.outputStream.use { it.write(bytes) }
