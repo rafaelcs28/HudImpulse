@@ -105,9 +105,9 @@ object SpeedLimitFetcher {
                 Log.i(TAG, "Speed limit: $kmh km/h")
 
                 appContext?.sendBroadcast(
-                    Intent(CarDataService.ACTION_CAR_DATA).putExtra(
-                        CarDataService.EXTRA_SPEED_LIMIT_KMH, kmh
-                    )
+                    Intent(CarDataService.ACTION_CAR_DATA)
+                        .putExtra(CarDataService.EXTRA_SPEED_LIMIT_KMH, kmh)
+                        .putExtra(CarDataService.EXTRA_SPEED_LIMIT_SOURCE, CarDataService.SOURCE_HERE)
                 )
             } catch (e: Exception) {
                 Log.w(TAG, "HERE query failed: ${e.message}")

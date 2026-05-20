@@ -142,6 +142,7 @@ class CarDataService : Service() {
                 }
                 Log.i(TAG, "Speed limit: $limit km/h via $key")
                 intent.putExtra(EXTRA_SPEED_LIMIT_KMH, limit)
+                intent.putExtra(EXTRA_SPEED_LIMIT_SOURCE, SOURCE_TSR)
                 sendBroadcast(intent)
             }
             else -> Log.i(TAG, "unknown key=$key value=$value")
@@ -149,11 +150,15 @@ class CarDataService : Service() {
     }
 
     companion object {
-        const val ACTION_CAR_DATA       = "com.hudimpulse.app.CAR_DATA"
-        const val EXTRA_SPEED_KMH       = "speed_kmh"
-        const val EXTRA_ENERGY_PERCENT  = "energy_percent"    // float: >0 consumo, <0 regen
-        const val EXTRA_SPEED_LIMIT_KMH = "speed_limit_kmh"  // int: limite da via (0 = desconhecido)
-        const val EXTRA_ENGINE_RPM      = "engine_rpm"        // int: RPM do motor ICE (0 = motor desligado)
+        const val ACTION_CAR_DATA          = "com.hudimpulse.app.CAR_DATA"
+        const val EXTRA_SPEED_KMH          = "speed_kmh"
+        const val EXTRA_ENERGY_PERCENT     = "energy_percent"      // float: >0 consumo, <0 regen
+        const val EXTRA_SPEED_LIMIT_KMH    = "speed_limit_kmh"     // int: limite da via (0 = desconhecido)
+        const val EXTRA_SPEED_LIMIT_SOURCE = "speed_limit_source"  // string: SOURCE_TSR ou SOURCE_HERE
+        const val EXTRA_ENGINE_RPM         = "engine_rpm"          // int: RPM do motor ICE (0 = motor desligado)
+
+        const val SOURCE_TSR  = "tsr"   // câmera do carro leu a placa
+        const val SOURCE_HERE = "here"  // HERE Maps via GPS
 
         private const val KEY_SPEED       = "car.basic.vehicle_speed"
         private const val KEY_ENERGY      = "car.ev_info.energy_output_percentage"
