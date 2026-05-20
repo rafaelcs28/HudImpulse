@@ -458,7 +458,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 labelPaint.textSize  = h * 0.065f
                 labelPaint.textAlign = Paint.Align.CENTER
                 val labelFm     = labelPaint.fontMetrics
-                val labelStartY = maxOf(rowY + signR * 2f + 8f, speedCenterY + energyArcR + 12f)
+                val labelStartY = maxOf(rowY + signR * 2f + 8f, speedCenterY + energyArcR + h * 0.085f)
                 val labelY      = labelStartY - (labelFm.ascent + labelFm.descent) / 2f
                 val rpmFraction = (engineRpm.coerceIn(0, MAX_RPM) / MAX_RPM.toFloat())
                 val rpmColor = when {
