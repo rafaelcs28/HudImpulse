@@ -139,7 +139,7 @@ class CarDataService : Service() {
                 intent.putExtra(EXTRA_SPEED_LIMIT_KMH, limit)
                 sendBroadcast(intent)
             }
-            else -> Log.v(TAG, "Unhandled key=$key value=$value")
+            else -> Log.i(TAG, "unknown key=$key value=$value")
         }
     }
 

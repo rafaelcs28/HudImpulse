@@ -79,6 +79,12 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
     private val navReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != NavigationReceiver.ACTION) return
+
+            // Dump all extras so we can discover the speed-limit key name in logcat
+            intent.extras?.keySet()?.forEach { k ->
+                android.util.Log.i("HudNav", "extra: $k = ${intent.extras?.get(k)}")
+            }
+
             val data = NavData(
                 distanceMeters = intent.getIntExtra("distance_meters", -1),
                 timeSeconds    = intent.getIntExtra("time_seconds", -1),
