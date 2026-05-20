@@ -178,18 +178,24 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
                 : energyPct > 30  ? '#C9A84C'
                 :                   '#4A86C8';
 
+    const off = Math.PI / 12; // 15° — abre espaço em 9h para o label
     ctx.beginPath();
     if (energyPct > 0) {
-      // Consumo: semicírculo superior, π → 0 (9h→3h pelo topo)
-      ctx.arc(cx, speedCenterY, r, Math.PI, Math.PI + sweep);
+      ctx.arc(cx, speedCenterY, r, Math.PI + off, Math.PI + off + sweep);
     } else {
-      // Regen: semicírculo inferior, 0 → π (3h→9h pelo baixo)
-      ctx.arc(cx, speedCenterY, r, 0, sweep);
+      ctx.arc(cx, speedCenterY, r, off, off + sweep);
     }
     ctx.strokeStyle = rgba(color, 0.82);
     ctx.lineWidth = 5;
     ctx.lineCap = 'round';
     ctx.stroke();
+
+    // % energia na posição 9h (ponta esquerda)
+    ctx.fillStyle = rgba(color, 0.88);
+    ctx.font = `bold ${(h * 0.060).toFixed(0)}px sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText((energyPct > 0 ? '▲ ' : '▼ ') + abs.toFixed(0) + '%', cx - r, speedCenterY);
   }
 
   // ── RPM arc (outer, r=0.40h) ──
@@ -202,7 +208,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
                 :               '#4A86C8';
 
     ctx.beginPath();
-    ctx.arc(cx, speedCenterY, r, Math.PI, Math.PI + sweep);
+    ctx.arc(cx, speedCenterY, r, Math.PI + Math.PI/12, Math.PI + Math.PI/12 + sweep);
     ctx.strokeStyle = rgba(color, 0.90);
     ctx.lineWidth = 8;
     ctx.lineCap = 'round';
@@ -250,37 +256,20 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
     ctx.fillText(String(limitKmh), scx, rowY);
   }
 
-  // ── Labels: below both the sign AND the energy arc (regen sits at bottom) ──
-  const energyArcR2  = h * 0.33;
-  const labelStartY  = Math.max(rowY + signR * 2 + 8, speedCenterY + energyArcR2 + 12);
-  const labelGap     = h * 0.080;
-  const labelSize    = (h * 0.065).toFixed(0);
-  ctx.font           = `bold ${labelSize}px sans-serif`;
-  ctx.textAlign      = 'center';
-  ctx.textBaseline   = 'middle';
-  let labelY = labelStartY;
-
+  // ── RPM label (abaixo da placa, centro) ──
   if (engineRpm > 0) {
+    const energyArcR2 = h * 0.33;
+    const labelY = Math.max(rowY + signR * 2 + 8, speedCenterY + energyArcR2 + 12);
     const frac2   = clamp(engineRpm, 0, MAX_RPM) / MAX_RPM;
     const rpmCol  = frac2 > 0.83 ? '#C05555' : frac2 > 0.50 ? '#C87941' : '#4A86C8';
     const rpmDisp = engineRpm >= 1000
       ? String(Math.floor(engineRpm / 100) * 100)
       : String(engineRpm);
+    ctx.font = `bold ${(h * 0.065).toFixed(0)}px sans-serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillStyle = rgba(rpmCol, 0.85);
     ctx.fillText(rpmDisp + ' rpm', cx, labelY);
-    labelY += labelGap;
-  }
-
-  if (energyPct !== 0) {
-    const abs2 = Math.abs(energyPct);
-    const eCol = energyPct < 0   ? '#52B788'
-               : energyPct > 75  ? '#C05555'
-               : energyPct > 50  ? '#C87941'
-               : energyPct > 30  ? '#C9A84C'
-               :                   '#4A86C8';
-    const eLbl = (energyPct > 0 ? '▲ ' : '▼ ') + abs2.toFixed(0) + '%';
-    ctx.fillStyle = rgba(eCol, 0.85);
-    ctx.fillText(eLbl, cx, labelY);
   }
 
   ctx.textBaseline = 'alphabetic';

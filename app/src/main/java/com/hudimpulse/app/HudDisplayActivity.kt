@@ -380,11 +380,25 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 energyArcPaint.alpha = 210
                 energyArcRect.set(cx - energyArcR, speedCenterY - energyArcR,
                                   cx + energyArcR, speedCenterY + energyArcR)
+                // 15° offset abre espaço em 9h para o label
                 if (energyPercent > 0f) {
-                    canvas.drawArc(energyArcRect, 180f, sweep, false, energyArcPaint)
+                    canvas.drawArc(energyArcRect, 195f, sweep, false, energyArcPaint)
                 } else {
-                    canvas.drawArc(energyArcRect, 0f, sweep, false, energyArcPaint)
+                    canvas.drawArc(energyArcRect, 15f, sweep, false, energyArcPaint)
                 }
+
+                // % energia na posição 9h (ponta esquerda do arco)
+                labelPaint.textSize  = h * 0.060f
+                labelPaint.color     = energyColor
+                labelPaint.alpha     = 190
+                labelPaint.textAlign = Paint.Align.RIGHT
+                val eLabelFm  = labelPaint.fontMetrics
+                val eLabelStr = if (energyPercent > 0f) "▲ ${abs.toInt()}%" else "▼ ${abs.toInt()}%"
+                canvas.drawText(eLabelStr,
+                    cx - energyArcR,
+                    speedCenterY - (eLabelFm.ascent + eLabelFm.descent) / 2f,
+                    labelPaint)
+                labelPaint.textAlign = Paint.Align.CENTER
             }
 
             // ── Arco externo: RPM motor ICE ──
@@ -401,7 +415,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 rpmArcPaint.alpha = 230
                 rpmArcRect.set(cx - rpmArcR, speedCenterY - rpmArcR,
                                cx + rpmArcR, speedCenterY + rpmArcR)
-                canvas.drawArc(rpmArcRect, 180f, rpmSweep, false, rpmArcPaint)
+                canvas.drawArc(rpmArcRect, 195f, rpmSweep, false, rpmArcPaint)
             }
 
             // ── Velocidade ──
@@ -438,15 +452,13 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 canvas.drawText(limitKmh.toString(), signCx, textY, limitTextPaint)
             }
 
-            // ── Labels: abaixo da placa de limite E abaixo do arco de regen ──
-            labelPaint.textSize = h * 0.065f
-            val labelFm      = labelPaint.fontMetrics
-            val labelGap     = h * 0.080f
-            val labelStartY  = maxOf(rowY + signR * 2f + 8f, speedCenterY + energyArcR + 12f)
-            val labelBaseline = labelStartY - (labelFm.ascent + labelFm.descent) / 2f
-            var labelY = labelBaseline
-
+            // ── RPM label (abaixo da placa, centrado) ──
             if (engineRpm > 0) {
+                labelPaint.textSize  = h * 0.065f
+                labelPaint.textAlign = Paint.Align.CENTER
+                val labelFm     = labelPaint.fontMetrics
+                val labelStartY = maxOf(rowY + signR * 2f + 8f, speedCenterY + energyArcR + 12f)
+                val labelY      = labelStartY - (labelFm.ascent + labelFm.descent) / 2f
                 val rpmFraction = (engineRpm.coerceIn(0, MAX_RPM) / MAX_RPM.toFloat())
                 val rpmColor = when {
                     rpmFraction > 0.83f -> Color.parseColor("#C05555")
@@ -457,22 +469,6 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 labelPaint.color = rpmColor
                 labelPaint.alpha = 190
                 canvas.drawText("$rpmStr rpm", cx, labelY, labelPaint)
-                labelY += labelGap
-            }
-
-            if (energyPercent != 0f) {
-                val abs = kotlin.math.abs(energyPercent)
-                val energyColor = when {
-                    energyPercent < 0f  -> Color.parseColor("#52B788")
-                    energyPercent > 75f -> Color.parseColor("#C05555")
-                    energyPercent > 50f -> Color.parseColor("#C87941")
-                    energyPercent > 30f -> Color.parseColor("#C9A84C")
-                    else                -> Color.parseColor("#4A86C8")
-                }
-                val energyLabel = if (energyPercent > 0f) "▲ ${abs.toInt()}%" else "▼ ${abs.toInt()}%"
-                labelPaint.color = energyColor
-                labelPaint.alpha = 190
-                canvas.drawText(energyLabel, cx, labelY, labelPaint)
             }
         }
     }
