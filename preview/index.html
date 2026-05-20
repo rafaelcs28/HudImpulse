@@ -1,123 +1,375 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
+<title>HUD Impulse — Preview</title>
 <style>
-  body { background: #111; display: flex; gap: 40px; padding: 40px; align-items: flex-start; flex-wrap: wrap; }
-  .card { display: flex; flex-direction: column; align-items: center; gap: 10px; }
-  label { color: #aaa; font-family: monospace; font-size: 13px; }
-  canvas { border: 1px solid #333; background: #000; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111; color: #ccc; font-family: monospace; padding: 24px; }
+  h1 { color: #4FC3F7; font-size: 18px; margin-bottom: 20px; }
+  h2 { color: #888; font-size: 13px; margin: 20px 0 10px; text-transform: uppercase; letter-spacing: 1px; }
+
+  /* HUD canvas — 480×240 exibido em 2× via CSS */
+  #hud {
+    display: block;
+    width: 960px;
+    height: 480px;
+    image-rendering: pixelated;
+    border: 1px solid #333;
+  }
+
+  .controls {
+    margin-top: 20px;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    max-width: 960px;
+  }
+  .ctrl { display: flex; flex-direction: column; gap: 4px; }
+  .ctrl label { font-size: 12px; color: #888; }
+  .ctrl input[type=range] { accent-color: #4FC3F7; }
+  .ctrl .val { font-size: 13px; color: #eee; }
+
+  .presets { margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .presets button {
+    background: #222; border: 1px solid #444; color: #ccc;
+    padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 12px;
+  }
+  .presets button:hover { background: #333; border-color: #4FC3F7; color: #fff; }
+
+  .nav-section { margin-top: 24px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .nav-card { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .nav-card label { color: #666; font-size: 11px; }
+  .nav-card canvas { border: 1px solid #222; background: #000; }
 </style>
 </head>
 <body>
+<h1>HUD Impulse — Preview</h1>
+
+<canvas id="hud" width="480" height="240"></canvas>
+
+<div class="presets">
+  <button onclick="preset(60,60,0,25)">Cidade EV (60)</button>
+  <button onclick="preset(110,110,2500,55)">Rodovia ICE (110)</button>
+  <button onclick="preset(85,80,1800,0)">Acima do limite</button>
+  <button onclick="preset(70,0,0,-38)">Regen (-38%)</button>
+  <button onclick="preset(140,110,5200,80)">Redline!</button>
+  <button onclick="preset(0,0,0,0)">Idle</button>
+</div>
+
+<div class="controls">
+  <div class="ctrl">
+    <label>Velocidade (km/h)</label>
+    <input type="range" id="s_speed" min="0" max="200" value="92" oninput="draw()">
+    <span class="val" id="v_speed">92</span>
+  </div>
+  <div class="ctrl">
+    <label>Limite TSR (0 = sem limite)</label>
+    <input type="range" id="s_limit" min="0" max="160" value="80" oninput="draw()">
+    <span class="val" id="v_limit">80</span>
+  </div>
+  <div class="ctrl">
+    <label>RPM motor ICE (0 = motor desligado)</label>
+    <input type="range" id="s_rpm" min="0" max="6000" step="100" value="1200" oninput="draw()">
+    <span class="val" id="v_rpm">1200</span>
+  </div>
+  <div class="ctrl">
+    <label>Energia EV (negativo = regen)</label>
+    <input type="range" id="s_energy" min="-100" max="100" value="32" oninput="draw()">
+    <span class="val" id="v_energy">32</span>
+  </div>
+</div>
+
+<h2>Setas de navegação</h2>
+<div class="nav-section" id="nav-section"></div>
+
 <script>
-function drawRoundabout(canvas, exitNumber, size) {
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, size, size);
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function parseColor(hex){
+  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return [r,g,b];
+}
+function rgba(hex,a){ const [r,g,b]=parseColor(hex); return `rgba(${r},${g},${b},${a})`; }
 
-  const cx = size / 2, cy = size / 2;
-  const r  = size * 0.40;
-  const cr = r * 0.50;
+// ── Draw HUD ─────────────────────────────────────────────────────────────────
+function draw() {
+  const speedKmh    = +document.getElementById('s_speed').value;
+  const limitKmh    = +document.getElementById('s_limit').value;
+  const engineRpm   = +document.getElementById('s_rpm').value;
+  const energyPct   = +document.getElementById('s_energy').value;
 
-  ctx.strokeStyle = '#fff';
-  ctx.fillStyle   = '#fff';
-  ctx.lineCap     = 'butt';
-  ctx.lineWidth   = r * 0.13;
+  document.getElementById('v_speed').textContent  = speedKmh;
+  document.getElementById('v_limit').textContent  = limitKmh || '—';
+  document.getElementById('v_rpm').textContent    = engineRpm || '—';
+  document.getElementById('v_energy').textContent = energyPct ? `${energyPct}%` : '—';
 
-  // ── Arco CCW 300° ──
-  const startDeg = 120 * Math.PI / 180;
-  const endDeg   = (120 - 300) * Math.PI / 180;  // = -180° = 180°
+  const canvas = document.getElementById('hud');
+  const ctx    = canvas.getContext('2d');
+  const W = 480, H = 240;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,W,H);
+
+  // ── Left panel: navigation placeholder ──────────────────────────────────
+  const navData = {
+    arrow: 4, side: 2, distance: 270, road: 'Av. Paulista',
+    eventType: 4, turnAngle: 45, turnNumber: -1
+  };
+  drawNavPanel(ctx, navData, 0, 0, 240, H);
+
+  // ── Right panel: speed ──────────────────────────────────────────────────
+  drawSpeedPanel(ctx, 240, 0, 240, H, speedKmh, limitKmh, engineRpm, energyPct);
+}
+
+// ── Nav panel ────────────────────────────────────────────────────────────────
+function drawNavPanel(ctx, data, x, y, w, h) {
+  // Arrow
+  const arrowSize = 85, arrowH = 97;
+  const arrowX = x + w/2, arrowY = y + 12 + arrowH/2;
+  ctx.save();
+  ctx.translate(arrowX, arrowY);
+  drawArrowShape(ctx, data.arrow, data.side, arrowSize, '#fff', data.turnAngle);
+  ctx.restore();
+
+  // Distance
+  ctx.fillStyle = '#fff';
+  ctx.font = 'bold 23px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(formatDist(data.distance), x + w/2, y + 12 + arrowH + 8 + 18);
+
+  // Street
+  ctx.font = '16px sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText(data.road, x + w/2, y + 12 + arrowH + 8 + 18 + 20);
+}
+
+function formatDist(m) {
+  if (m >= 1000) { const km = m/1000; return km>=10 ? km.toFixed(0)+' km' : km.toFixed(1)+' km'; }
+  return m+' m';
+}
+
+// ── Speed panel ──────────────────────────────────────────────────────────────
+function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPct) {
+  const cx = x + w/2;
+  const MAX_RPM = 6000;
+
+  // Over limit calc
+  const overPct = (limitKmh > 0 && speedKmh > limitKmh)
+    ? (speedKmh - limitKmh)*100/limitKmh : 0;
+
+  const speedCenterY = y + h/2 - 15;
+
+  // ── Inner decorative circle ──
   ctx.beginPath();
-  ctx.arc(cx, cy, cr, startDeg, endDeg, true);  // true = CCW
+  ctx.arc(cx, speedCenterY, h*0.32, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
 
-  // ── Ponta de seta no final do arco (180°) ──
-  const eAngle = endDeg;
-  const ex = cx + cr * Math.cos(eAngle);
-  const ey = cy + cr * Math.sin(eAngle);
-  const tangX =  Math.sin(eAngle);
-  const tangY = -Math.cos(eAngle);
-  const hs    = r * 0.22;
-  const perpX = -tangY * hs * 0.5;
-  const perpY =  tangX * hs * 0.5;
+  // ── Energy arc (inner, r=0.33h) ──
+  if (energyPct !== 0) {
+    const abs   = Math.abs(energyPct);
+    const sweep = (abs/100) * Math.PI;   // 0→π radians
+    const r     = h * 0.33;
+    const color = energyPct < 0   ? '#52B788'
+                : energyPct > 75  ? '#C05555'
+                : energyPct > 50  ? '#C87941'
+                : energyPct > 30  ? '#C9A84C'
+                :                   '#4A86C8';
 
-  ctx.beginPath();
-  ctx.moveTo(ex + tangX * hs * 0.5, ey + tangY * hs * 0.5);
-  ctx.lineTo(ex - tangX * hs * 0.5 + perpX, ey - tangY * hs * 0.5 + perpY);
-  ctx.lineTo(ex - tangX * hs * 0.5 - perpX, ey - tangY * hs * 0.5 - perpY);
-  ctx.closePath();
-  ctx.fill();
+    ctx.beginPath();
+    if (energyPct > 0) {
+      // Consumo: semicírculo superior, π → 0 (9h→3h pelo topo)
+      ctx.arc(cx, speedCenterY, r, Math.PI, Math.PI + sweep);
+    } else {
+      // Regen: semicírculo inferior, 0 → π (3h→9h pelo baixo)
+      ctx.arc(cx, speedCenterY, r, 0, sweep);
+    }
+    ctx.strokeStyle = rgba(color, 0.82);
+    ctx.lineWidth = 5;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
 
-  // ── Seta de entrada (baixo → círculo) ──
-  ctx.lineCap  = 'round';
-  ctx.lineWidth = r * 0.13;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy + r);
-  ctx.lineTo(cx, cy + cr + r * 0.05);
-  ctx.stroke();
+  // ── RPM arc (outer, r=0.40h) ──
+  if (engineRpm > 0) {
+    const frac  = clamp(engineRpm, 0, MAX_RPM) / MAX_RPM;
+    const sweep = frac * Math.PI;
+    const r     = h * 0.40;
+    const color = frac > 0.83 ? '#C05555'
+                : frac > 0.50 ? '#C87941'
+                :               '#4A86C8';
 
-  // ── Número da saída ──
-  if (exitNumber > 0) {
-    const fs = r * 0.62;
-    ctx.font      = `bold ${fs}px sans-serif`;
+    ctx.beginPath();
+    ctx.arc(cx, speedCenterY, r, Math.PI, Math.PI + sweep);
+    ctx.strokeStyle = rgba(color, 0.90);
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // ── Velocidade ──
+  const speedColor = overPct > 20 ? '#FF4444' : overPct > 0 ? '#FFEE44' : '#FFFFFF';
+  const speedSize  = (h * 0.386).toFixed(0);
+  ctx.fillStyle  = speedColor;
+  ctx.font       = `bold ${speedSize}px sans-serif`;
+  ctx.textAlign  = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(String(speedKmh), cx, speedCenterY);
+
+  // ── km/h + placa ──
+  const rowY   = speedCenterY + h * 0.22;
+  const signR  = 13;
+  const unitSz = (h * 0.074).toFixed(0);
+  ctx.font     = `bold ${unitSz}px sans-serif`;
+  ctx.textBaseline = 'middle';
+
+  ctx.fillStyle = 'rgba(255,255,255,0.65)';
+  ctx.textAlign = 'left';
+  const kmhW = ctx.measureText('km/h').width;
+  const gap  = h * 0.025;
+  const totalW = limitKmh > 0 ? kmhW + gap + signR*2 : kmhW;
+  const groupX = cx - totalW/2;
+  ctx.fillText('km/h', groupX, rowY);
+
+  if (limitKmh > 0) {
+    const scx = groupX + kmhW + gap + signR;
+    ctx.beginPath();
+    ctx.arc(scx, rowY, signR, 0, Math.PI*2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(scx, rowY, signR, 0, Math.PI*2);
+    ctx.strokeStyle = '#CC0000';
+    ctx.lineWidth = signR * 0.25;
+    ctx.stroke();
+    ctx.fillStyle = '#000';
+    ctx.font = `bold ${limitKmh >= 100 ? 12 : 14}px sans-serif`;
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(exitNumber.toString(), cx, cy + fs * 0.05);
+    ctx.fillText(String(limitKmh), scx, rowY);
+  }
+
+  // ── Labels inside circle (RPM + energy, stacked below km/h row) ──
+  const labelGap  = h * 0.055;
+  const labelSize = (h * 0.065).toFixed(0);
+  ctx.font = `bold ${labelSize}px sans-serif`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  let labelRow = 1;
+
+  if (engineRpm > 0) {
+    const frac2   = clamp(engineRpm, 0, MAX_RPM) / MAX_RPM;
+    const rpmCol  = frac2 > 0.83 ? '#C05555' : frac2 > 0.50 ? '#C87941' : '#4A86C8';
+    const rpmDisp = engineRpm >= 1000
+      ? String(Math.floor(engineRpm / 100) * 100)
+      : String(engineRpm);
+    ctx.fillStyle = rgba(rpmCol, 0.85);
+    ctx.fillText(rpmDisp + ' rpm', cx, rowY + labelGap * labelRow);
+    labelRow++;
+  }
+
+  if (energyPct !== 0) {
+    const abs2   = Math.abs(energyPct);
+    const eCol   = energyPct < 0   ? '#52B788'
+                 : energyPct > 75  ? '#C05555'
+                 : energyPct > 50  ? '#C87941'
+                 : energyPct > 30  ? '#C9A84C'
+                 :                   '#4A86C8';
+    const eLbl   = (energyPct > 0 ? '▲ ' : '▼ ') + abs2.toFixed(0) + '%';
+    ctx.fillStyle = rgba(eCol, 0.85);
+    ctx.fillText(eLbl, cx, rowY + labelGap * labelRow);
+  }
+
+  ctx.textBaseline = 'alphabetic';
+}
+
+// ── Presets ───────────────────────────────────────────────────────────────────
+function preset(speed, limit, rpm, energy) {
+  document.getElementById('s_speed').value  = speed;
+  document.getElementById('s_limit').value  = limit;
+  document.getElementById('s_rpm').value    = rpm;
+  document.getElementById('s_energy').value = energy;
+  draw();
+}
+
+// ── Arrow drawings (simplified versions) ────────────────────────────────────
+function drawArrowShape(ctx, eventType, side, size, color, angle) {
+  const r  = size * 0.40;
+  const lw = size * 0.13;
+  ctx.strokeStyle = color; ctx.fillStyle = color;
+  ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  if (eventType === 0 || eventType === 1) {
+    // Reto
+    ctx.beginPath();
+    ctx.moveTo(0, r); ctx.lineTo(0, -r*0.3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -r); ctx.lineTo(-r*0.35, -r*0.35); ctx.lineTo(r*0.35, -r*0.35);
+    ctx.closePath(); ctx.fill();
+  } else if (eventType === 3 || eventType === 4) {
+    // Curva esq/dir
+    const flip = (eventType === 4 || side === 2) ? 1 : -1;
+    ctx.beginPath();
+    ctx.moveTo(-flip*r*0.4, r);
+    ctx.lineTo(-flip*r*0.4, -r*0.1);
+    ctx.arcTo(-flip*r*0.4, -r*0.7, flip*r*0.4, -r*0.7, r*0.6);
+    ctx.lineTo(flip*r*0.4, -r*0.2);
+    ctx.stroke();
+    // ponta seta
+    ctx.beginPath();
+    ctx.moveTo(flip*r*0.4, -r);
+    ctx.lineTo(flip*r*0.05, -r*0.45);
+    ctx.lineTo(flip*r*0.75, -r*0.45);
+    ctx.closePath(); ctx.fill();
+  } else if (eventType === 6) {
+    // Retorno
+    ctx.beginPath();
+    ctx.moveTo(r*0.3, r);
+    ctx.lineTo(r*0.3, 0);
+    ctx.arc(0, 0, r*0.3, 0, -Math.PI, true);
+    ctx.lineTo(-r*0.3, r);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(r*0.3, r*0.2); ctx.lineTo(r*0.65, r*0.7); ctx.lineTo(-r*0.05, r*0.7);
+    ctx.closePath(); ctx.fill();
+  } else {
+    // Seta genérica para cima
+    ctx.beginPath();
+    ctx.moveTo(0, r); ctx.lineTo(0, -r*0.3); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -r); ctx.lineTo(-r*0.35, -r*0.3); ctx.lineTo(r*0.35, -r*0.3);
+    ctx.closePath(); ctx.fill();
   }
 }
 
-function drawStraight(canvas, size) {
-  const ctx = canvas.getContext('2d');
-  const cx = size/2, cy = size/2, r = size*0.40;
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.moveTo(cx,           cy - r);
-  ctx.lineTo(cx - r*0.4f, cy - r*0.3);
-  ctx.lineTo(cx - r*0.15,  cy - r*0.3);
-  ctx.lineTo(cx - r*0.15,  cy + r);
-  ctx.lineTo(cx + r*0.15,  cy + r);
-  ctx.lineTo(cx + r*0.15,  cy - r*0.3);
-  ctx.lineTo(cx + r*0.4,   cy - r*0.3);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function drawSlightTurn(canvas, size, side) {
-  const ctx = canvas.getContext('2d');
-  const cx = size/2, cy = size/2, r = size*0.40;
-  const flip = side === 'left' ? -1 : 1;
-  ctx.fillStyle = '#fff';
-  ctx.beginPath();
-  ctx.moveTo(cx + flip*r*0.7, cy - r*0.7);
-  ctx.lineTo(cx,              cy - r*0.5);
-  ctx.lineTo(cx + flip*r*0.2, cy - r*0.3);
-  ctx.lineTo(cx - flip*r*0.1, cy + r);
-  ctx.lineTo(cx + flip*r*0.2, cy + r);
-  ctx.lineTo(cx + flip*r*0.5, cy - r*0.1);
-  ctx.lineTo(cx + flip*r*0.5, cy - r*0.5);
-  ctx.closePath();
-  ctx.fill();
-}
-
-const items = [
-  { label: 'Rotatória • saída 1', fn: c => drawRoundabout(c, 1, 160) },
-  { label: 'Rotatória • saída 2', fn: c => drawRoundabout(c, 2, 160) },
-  { label: 'Rotatória • saída 3', fn: c => drawRoundabout(c, 3, 160) },
-  { label: 'Rotatória • saída s/ nº', fn: c => drawRoundabout(c, 0, 160) },
+// ── Nav arrow gallery ─────────────────────────────────────────────────────────
+const arrows = [
+  { label: 'Reto',          fn: (c,s) => { const ct=c.getContext('2d'); drawArrowCtx(ct,0,3,s,'#fff'); } },
+  { label: 'Curva direita', fn: (c,s) => { const ct=c.getContext('2d'); drawArrowCtx(ct,4,2,s,'#fff'); } },
+  { label: 'Curva esq.',    fn: (c,s) => { const ct=c.getContext('2d'); drawArrowCtx(ct,3,1,s,'#fff'); } },
+  { label: 'Retorno',       fn: (c,s) => { const ct=c.getContext('2d'); drawArrowCtx(ct,6,1,s,'#fff'); } },
 ];
-
-items.forEach(item => {
-  const card = document.createElement('div');
-  card.className = 'card';
-  const lbl = document.createElement('label');
-  lbl.textContent = item.label;
-  const cv = document.createElement('canvas');
-  cv.width = 160; cv.height = 160;
-  item.fn(cv);
-  card.appendChild(cv);
-  card.appendChild(lbl);
-  document.body.appendChild(card);
+function drawArrowCtx(ctx,ev,side,s,color){
+  ctx.clearRect(0,0,s,s);
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,s,s);
+  ctx.save(); ctx.translate(s/2,s/2);
+  drawArrowShape(ctx,ev,side,s,color,0);
+  ctx.restore();
+}
+const navSec = document.getElementById('nav-section');
+arrows.forEach(a => {
+  const card=document.createElement('div'); card.className='nav-card';
+  const lbl=document.createElement('label'); lbl.textContent=a.label;
+  const cv=document.createElement('canvas'); cv.width=cv.height=100;
+  a.fn(cv,100);
+  card.appendChild(cv); card.appendChild(lbl);
+  navSec.appendChild(card);
 });
+
+// ── Animate ──────────────────────────────────────────────────────────────────
+draw();
 </script>
 </body>
 </html>
