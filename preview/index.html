@@ -250,13 +250,15 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
     ctx.fillText(String(limitKmh), scx, rowY);
   }
 
-  // ── Labels inside circle (RPM + energy, stacked below km/h row) ──
-  const labelGap  = h * 0.055;
-  const labelSize = (h * 0.065).toFixed(0);
-  ctx.font = `bold ${labelSize}px sans-serif`;
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  let labelRow = 1;
+  // ── Labels: below both the sign AND the energy arc (regen sits at bottom) ──
+  const energyArcR2  = h * 0.33;
+  const labelStartY  = Math.max(rowY + signR * 2 + 8, speedCenterY + energyArcR2 + 12);
+  const labelGap     = h * 0.058;
+  const labelSize    = (h * 0.065).toFixed(0);
+  ctx.font           = `bold ${labelSize}px sans-serif`;
+  ctx.textAlign      = 'center';
+  ctx.textBaseline   = 'middle';
+  let labelY = labelStartY;
 
   if (engineRpm > 0) {
     const frac2   = clamp(engineRpm, 0, MAX_RPM) / MAX_RPM;
@@ -265,20 +267,20 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
       ? String(Math.floor(engineRpm / 100) * 100)
       : String(engineRpm);
     ctx.fillStyle = rgba(rpmCol, 0.85);
-    ctx.fillText(rpmDisp + ' rpm', cx, rowY + labelGap * labelRow);
-    labelRow++;
+    ctx.fillText(rpmDisp + ' rpm', cx, labelY);
+    labelY += labelGap;
   }
 
   if (energyPct !== 0) {
-    const abs2   = Math.abs(energyPct);
-    const eCol   = energyPct < 0   ? '#52B788'
-                 : energyPct > 75  ? '#C05555'
-                 : energyPct > 50  ? '#C87941'
-                 : energyPct > 30  ? '#C9A84C'
-                 :                   '#4A86C8';
-    const eLbl   = (energyPct > 0 ? '▲ ' : '▼ ') + abs2.toFixed(0) + '%';
+    const abs2 = Math.abs(energyPct);
+    const eCol = energyPct < 0   ? '#52B788'
+               : energyPct > 75  ? '#C05555'
+               : energyPct > 50  ? '#C87941'
+               : energyPct > 30  ? '#C9A84C'
+               :                   '#4A86C8';
+    const eLbl = (energyPct > 0 ? '▲ ' : '▼ ') + abs2.toFixed(0) + '%';
     ctx.fillStyle = rgba(eCol, 0.85);
-    ctx.fillText(eLbl, cx, rowY + labelGap * labelRow);
+    ctx.fillText(eLbl, cx, labelY);
   }
 
   ctx.textBaseline = 'alphabetic';

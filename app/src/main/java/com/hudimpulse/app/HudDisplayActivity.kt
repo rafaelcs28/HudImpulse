@@ -438,10 +438,13 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 canvas.drawText(limitKmh.toString(), signCx, textY, limitTextPaint)
             }
 
-            // ── Labels secundários dentro do círculo, abaixo do km/h ──
+            // ── Labels: abaixo da placa de limite E abaixo do arco de regen ──
             labelPaint.textSize = h * 0.065f
-            val labelFm  = labelPaint.fontMetrics
-            val labelGap = h * 0.055f
+            val labelFm      = labelPaint.fontMetrics
+            val labelGap     = h * 0.058f
+            val labelStartY  = maxOf(rowY + signR * 2f + 8f, speedCenterY + energyArcR + 12f)
+            val labelBaseline = labelStartY - (labelFm.ascent + labelFm.descent) / 2f
+            var labelY = labelBaseline
 
             if (engineRpm > 0) {
                 val rpmFraction = (engineRpm.coerceIn(0, MAX_RPM) / MAX_RPM.toFloat())
@@ -453,8 +456,8 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 val rpmStr = if (engineRpm >= 1000) "${engineRpm / 100 * 100}" else "$engineRpm"
                 labelPaint.color = rpmColor
                 labelPaint.alpha = 190
-                val rpmLabelY = rowY + labelGap - (labelFm.ascent + labelFm.descent) / 2f
-                canvas.drawText("$rpmStr rpm", cx, rpmLabelY, labelPaint)
+                canvas.drawText("$rpmStr rpm", cx, labelY, labelPaint)
+                labelY += labelGap
             }
 
             if (energyPercent != 0f) {
@@ -469,8 +472,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 val energyLabel = if (energyPercent > 0f) "▲ ${abs.toInt()}%" else "▼ ${abs.toInt()}%"
                 labelPaint.color = energyColor
                 labelPaint.alpha = 190
-                val energyLabelY = rowY + labelGap * (if (engineRpm > 0) 2f else 1f) - (labelFm.ascent + labelFm.descent) / 2f
-                canvas.drawText(energyLabel, cx, energyLabelY, labelPaint)
+                canvas.drawText(energyLabel, cx, labelY, labelPaint)
             }
         }
     }
