@@ -343,8 +343,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
 
         private val energyArcRect = RectF()
         private val rpmArcRect    = RectF()
-
-        private companion object { const val MAX_RPM = 6000 }
+        private val MAX_RPM = 6000
 
         init { setBackgroundColor(Color.BLACK) }
 
