@@ -156,6 +156,7 @@ class CarDataService : Service() {
         const val EXTRA_SPEED_LIMIT_KMH    = "speed_limit_kmh"     // int: limite da via (0 = desconhecido)
         const val EXTRA_SPEED_LIMIT_SOURCE = "speed_limit_source"  // string: SOURCE_TSR ou SOURCE_HERE
         const val EXTRA_ENGINE_RPM         = "engine_rpm"          // int: RPM do motor ICE (0 = motor desligado)
+        const val EXTRA_HERE_STATUS        = "here_status"         // string: diagnóstico visível no HUD
 
         const val SOURCE_TSR  = "tsr"   // câmera do carro leu a placa
         const val SOURCE_HERE = "here"  // HERE Maps via GPS

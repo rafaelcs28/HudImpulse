@@ -123,6 +123,9 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             if (intent.hasExtra(CarDataService.EXTRA_ENGINE_RPM)) {
                 speedPanel.engineRpm = intent.getIntExtra(CarDataService.EXTRA_ENGINE_RPM, -1)
             }
+            if (intent.hasExtra(CarDataService.EXTRA_HERE_STATUS)) {
+                speedPanel.hereStatus = intent.getStringExtra(CarDataService.EXTRA_HERE_STATUS) ?: ""
+            }
         }
     }
 
@@ -307,6 +310,8 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             set(v) { field = v.coerceIn(-100f, 100f); invalidate() }
         var engineRpm: Int = -1
             set(v) { field = v; invalidate() }
+        var hereStatus: String = ""
+            set(v) { field = v; invalidate() }
 
         // ── Paints ──
         private val speedPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -462,6 +467,17 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 val fm    = limitTextPaint.fontMetrics
                 val textY = rowY - (fm.ascent + fm.descent) / 2f
                 canvas.drawText(limitKmh.toString(), signCx, textY, limitTextPaint)
+            }
+
+            // ── Status HERE (diagnóstico, só quando sem placa) ──
+            if (limitKmh <= 0 && hereStatus.isNotEmpty()) {
+                labelPaint.textSize  = h * 0.055f
+                labelPaint.textAlign = Paint.Align.CENTER
+                labelPaint.color     = Color.parseColor("#FFCC00")
+                labelPaint.alpha     = 200
+                val statusFm = labelPaint.fontMetrics
+                val statusY  = rowY + h * 0.075f - (statusFm.ascent + statusFm.descent) / 2f
+                canvas.drawText(hereStatus, cx, statusY, labelPaint)
             }
 
             // ── RPM label (abaixo da placa, centrado) ──

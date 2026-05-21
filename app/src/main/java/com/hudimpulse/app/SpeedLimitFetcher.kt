@@ -17,8 +17,7 @@ object SpeedLimitFetcher {
     private const val MIN_DISTANCE = 100f
     private const val MIN_TIME_MS  = 15_000L
     private const val TIMEOUT_MS   = 6_000
-
-    private const val BASE_URL = "https://roads.ls.hereapi.com/roads/v1/speedlimits"
+    private const val BASE_URL     = "https://roads.ls.hereapi.com/roads/v1/speedlimits"
 
     private var appContext: Context? = null
 
@@ -30,25 +29,39 @@ object SpeedLimitFetcher {
         override fun onProviderDisabled(p: String) { LogForwarder.w(TAG, "provider disabled: $p") }
     }
 
+    private fun broadcastStatus(ctx: Context, status: String) {
+        LogForwarder.i(TAG, "status=$status")
+        ctx.sendBroadcast(
+            Intent(CarDataService.ACTION_CAR_DATA)
+                .putExtra(CarDataService.EXTRA_HERE_STATUS, status)
+        )
+    }
+
     fun start(context: Context) {
         val keyLen = BuildConfig.HERE_API_KEY.length
         LogForwarder.i(TAG, "HERE_API_KEY length=$keyLen")
 
         if (keyLen == 0) {
-            LogForwarder.w(TAG, "HERE_API_KEY not set — speed limit via GPS disabled")
+            broadcastStatus(context, "SEM CHAVE")
             return
         }
         if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED) {
-            LogForwarder.w(TAG, "ACCESS_FINE_LOCATION not granted")
+            broadcastStatus(context, "SEM PERMISSÃO")
             return
         }
 
         appContext = context.applicationContext
         val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-
         val providers = lm.getProviders(true)
-        LogForwarder.i(TAG, "Available providers: $providers")
+        LogForwarder.i(TAG, "providers=$providers")
+
+        if (providers.isEmpty()) {
+            broadcastStatus(context, "SEM GPS")
+            return
+        }
+
+        broadcastStatus(context, "GPS OK...")
 
         // Consulta imediata com última posição conhecida
         val last = providers.mapNotNull { p ->
@@ -56,28 +69,27 @@ object SpeedLimitFetcher {
         }.maxByOrNull { it.time }
 
         if (last != null) {
-            LogForwarder.i(TAG, "Last known: ${last.latitude},${last.longitude} via ${last.provider}")
+            LogForwarder.i(TAG, "last known: ${last.latitude},${last.longitude} via ${last.provider}")
             query(last)
         } else {
-            LogForwarder.w(TAG, "No last known location available")
+            LogForwarder.w(TAG, "no last known location")
+            broadcastStatus(context, "AGUARDANDO GPS")
         }
 
-        // Registra em GPS + NETWORK
+        // Registra em todos os providers disponíveis
         var registered = 0
         for (provider in listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)) {
             if (lm.isProviderEnabled(provider)) {
                 try {
                     lm.requestLocationUpdates(provider, MIN_TIME_MS, MIN_DISTANCE, locationListener)
-                    LogForwarder.i(TAG, "Listener registered: $provider")
+                    LogForwarder.i(TAG, "registered: $provider")
                     registered++
                 } catch (e: Exception) {
-                    LogForwarder.w(TAG, "Cannot register $provider: ${e.message}")
+                    LogForwarder.w(TAG, "cannot register $provider: ${e.message}")
                 }
-            } else {
-                LogForwarder.w(TAG, "Provider disabled: $provider")
             }
         }
-        if (registered == 0) LogForwarder.e(TAG, "No location provider available")
+        if (registered == 0) broadcastStatus(context, "SEM PROVIDER")
     }
 
     fun stop(context: Context) {
@@ -88,10 +100,11 @@ object SpeedLimitFetcher {
 
     private fun query(loc: Location) {
         val key = BuildConfig.HERE_API_KEY
+        val ctx = appContext ?: return
         Thread {
             try {
                 val url = "$BASE_URL?path=${loc.latitude},${loc.longitude}&apiKey=$key"
-                LogForwarder.d(TAG, "GET $url")
+                LogForwarder.d(TAG, "GET lat=${loc.latitude} lon=${loc.longitude}")
                 val conn = URL(url).openConnection() as HttpURLConnection
                 conn.connectTimeout = TIMEOUT_MS
                 conn.readTimeout    = TIMEOUT_MS
@@ -99,32 +112,35 @@ object SpeedLimitFetcher {
 
                 val code = conn.responseCode
                 if (code != 200) {
-                    val err = try { conn.errorStream?.bufferedReader()?.readText() } catch (_: Exception) { null }
+                    val err = try { conn.errorStream?.bufferedReader()?.readText() } catch (_: Exception) { "" }
                     LogForwarder.w(TAG, "HTTP $code — $err")
+                    broadcastStatus(ctx, "HERE HTTP $code")
                     conn.disconnect()
                     return@Thread
                 }
 
                 val body = conn.inputStream.bufferedReader().readText()
                 conn.disconnect()
-                LogForwarder.i(TAG, "Response: $body")
+                LogForwarder.i(TAG, "response: $body")
 
                 val limits = JSONObject(body).getJSONArray("speedLimits")
                 if (limits.length() == 0) {
-                    LogForwarder.d(TAG, "No speed limit at ${loc.latitude},${loc.longitude}")
+                    broadcastStatus(ctx, "HERE: sem dado")
                     return@Thread
                 }
 
                 val kmh = limits.getJSONObject(0).getInt("speedLimit")
-                LogForwarder.i(TAG, "Speed limit: $kmh km/h")
-
-                appContext?.sendBroadcast(
+                LogForwarder.i(TAG, "limit: $kmh km/h")
+                // Limpa o status — placa vai aparecer
+                broadcastStatus(ctx, "")
+                ctx.sendBroadcast(
                     Intent(CarDataService.ACTION_CAR_DATA)
                         .putExtra(CarDataService.EXTRA_SPEED_LIMIT_KMH, kmh)
                         .putExtra(CarDataService.EXTRA_SPEED_LIMIT_SOURCE, CarDataService.SOURCE_HERE)
                 )
             } catch (e: Exception) {
-                LogForwarder.w(TAG, "Query failed: ${e.message}")
+                LogForwarder.w(TAG, "query failed: ${e.message}")
+                broadcastStatus(ctx, "HERE: erro rede")
             }
         }.start()
     }
