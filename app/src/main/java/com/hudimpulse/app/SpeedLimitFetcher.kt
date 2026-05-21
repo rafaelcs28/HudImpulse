@@ -10,14 +10,23 @@ import android.os.Bundle
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Locale
+import kotlin.math.roundToInt
 
+/**
+ * Fetches road speed limits from HERE Routing API v8.
+ * Endpoint: https://router.hereapi.com/v8/routes
+ * Speed limit returned in m/s → converted to km/h.
+ */
 object SpeedLimitFetcher {
 
     private const val TAG          = "SpeedLimit"
     private const val MIN_DISTANCE = 100f
     private const val MIN_TIME_MS  = 15_000L
-    private const val TIMEOUT_MS   = 6_000
-    private const val BASE_URL     = "https://roads.ls.hereapi.com/roads/v1/speedlimits"
+    private const val TIMEOUT_MS   = 8_000
+
+    // HERE Routing v8 — substituto do roads.ls.hereapi.com (desativado)
+    private const val BASE_URL = "https://router.hereapi.com/v8/routes"
 
     private var appContext: Context? = null
 
@@ -69,14 +78,12 @@ object SpeedLimitFetcher {
         }.maxByOrNull { it.time }
 
         if (last != null) {
-            LogForwarder.i(TAG, "last known: ${last.latitude},${last.longitude} via ${last.provider}")
+            LogForwarder.i(TAG, "last known: ${last.latitude},${last.longitude}")
             query(last)
         } else {
-            LogForwarder.w(TAG, "no last known location")
             broadcastStatus(context, "AGUARDANDO GPS")
         }
 
-        // Registra em todos os providers disponíveis
         var registered = 0
         for (provider in listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)) {
             if (lm.isProviderEnabled(provider)) {
@@ -103,7 +110,14 @@ object SpeedLimitFetcher {
         val ctx = appContext ?: return
         Thread {
             try {
-                val url = "$BASE_URL?path=${loc.latitude},${loc.longitude}&apiKey=$key"
+                // Destino com pequeno offset norte (~110m) — Routing v8 exige dois pontos
+                val dest = String.format(Locale.US, "%.6f,%.6f", loc.latitude + 0.001, loc.longitude)
+                val url  = "$BASE_URL?transportMode=car" +
+                           "&origin=${String.format(Locale.US, "%.6f,%.6f", loc.latitude, loc.longitude)}" +
+                           "&destination=$dest" +
+                           "&return=spans&spans=speedLimit" +
+                           "&apiKey=$key"
+
                 LogForwarder.d(TAG, "GET lat=${loc.latitude} lon=${loc.longitude}")
                 val conn = URL(url).openConnection() as HttpURLConnection
                 conn.connectTimeout = TIMEOUT_MS
@@ -123,16 +137,22 @@ object SpeedLimitFetcher {
                 conn.disconnect()
                 LogForwarder.i(TAG, "response: $body")
 
-                val limits = JSONObject(body).getJSONArray("speedLimits")
-                if (limits.length() == 0) {
-                    broadcastStatus(ctx, "HERE: sem dado")
+                val routes   = JSONObject(body).getJSONArray("routes")
+                if (routes.length() == 0) { broadcastStatus(ctx, "HERE: sem rota"); return@Thread }
+                val sections = routes.getJSONObject(0).getJSONArray("sections")
+                if (sections.length() == 0) { broadcastStatus(ctx, "HERE: sem seção"); return@Thread }
+                val spans    = sections.getJSONObject(0).getJSONArray("spans")
+                if (spans.length() == 0) { broadcastStatus(ctx, "HERE: sem span"); return@Thread }
+
+                val speedMs = spans.getJSONObject(0).optDouble("speedLimit", -1.0)
+                if (speedMs <= 0) {
+                    broadcastStatus(ctx, "HERE: sem limite")
                     return@Thread
                 }
 
-                val kmh = limits.getJSONObject(0).getInt("speedLimit")
-                LogForwarder.i(TAG, "limit: $kmh km/h")
-                // Limpa o status — placa vai aparecer
-                broadcastStatus(ctx, "")
+                val kmh = (speedMs * 3.6).roundToInt()
+                LogForwarder.i(TAG, "speed limit: $kmh km/h (${speedMs} m/s)")
+                broadcastStatus(ctx, "")   // limpa status — placa vai aparecer
                 ctx.sendBroadcast(
                     Intent(CarDataService.ACTION_CAR_DATA)
                         .putExtra(CarDataService.EXTRA_SPEED_LIMIT_KMH, kmh)
