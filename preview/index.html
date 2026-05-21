@@ -166,7 +166,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   const overPct = (limitKmh > 0 && speedKmh > limitKmh)
     ? (speedKmh - limitKmh)*100/limitKmh : 0;
 
-  const speedCenterY = y + h/2;
+  const speedCenterY = y + h/2 - 8;
 
   // ── Inner decorative circle ──
 

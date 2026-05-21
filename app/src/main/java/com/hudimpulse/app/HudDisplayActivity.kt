@@ -365,7 +365,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 (speedKmh - limitKmh) * 100f / limitKmh else 0f
 
             // ── Centro visual dos arcos (ligeiramente acima do centro geométrico) ──
-            val speedCenterY = h / 2f
+            val speedCenterY = h / 2f - 8f
 
             // ── Arco de energia EV — mesmo raio nos dois sentidos para abertura idêntica ──
             // Consumo (+): 9h+offset → topo → 3h  (horário)
