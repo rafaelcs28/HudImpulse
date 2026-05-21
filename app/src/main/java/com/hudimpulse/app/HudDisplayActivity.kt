@@ -373,7 +373,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             // Com RPM visível: offset=30°, sweep=150° (arco começa mais baixo, dá espaço ao label)
             // Sem RPM:         offset=15°, sweep=165°
             val energyArcR = h * 0.30f   // usado só para posição do label %
-            val arcR = h * 0.36f         // mesmo raio para consumo e regen
+            val arcR = h * 0.32f         // mesmo raio para consumo e regen
             if (energyPercent != 0f) {
                 val abs      = kotlin.math.abs(energyPercent)
                 val offset   = if (engineRpm > 0) 30f else 15f
@@ -436,14 +436,14 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 overPct > 0f  -> Color.YELLOW
                 else          -> Color.WHITE
             }
-            speedPaint.textSize = if (speedKmh >= 100) h * 0.28f else h * 0.35f
+            speedPaint.textSize = if (speedKmh >= 100) h * 0.26f else h * 0.32f
             val speedFm = speedPaint.fontMetrics
             val speedY  = speedCenterY - (speedFm.ascent + speedFm.descent) / 2f
             canvas.drawText(speedKmh.toString(), cx, speedY, speedPaint)
 
             // ── Linha "km/h" + placa — encostada ao fundo real do texto de velocidade ──
             val signR = 15f
-            val rowY  = speedY + speedFm.descent + signR - 4f
+            val rowY  = speedY + speedFm.descent + signR - 8f
             unitPaint.textSize  = h * 0.074f
             unitPaint.textAlign = Paint.Align.LEFT
             val unitFm = unitPaint.fontMetrics
