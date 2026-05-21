@@ -447,7 +447,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
 
             // ── Linha "km/h" + placa ──
             val rowY = speedCenterY + h * 0.21f
-            val signR = 13f
+            val signR = 15f
             unitPaint.textSize  = h * 0.074f
             unitPaint.textAlign = Paint.Align.CENTER
             val unitFm = unitPaint.fontMetrics
@@ -463,7 +463,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 else
                     Color.parseColor("#4A86C8")   // azul — HERE Maps via GPS
                 canvas.drawCircle(signCx, rowY, signR, circleBorder)
-                limitTextPaint.textSize = if (limitKmh >= 100) 12f else 14f
+                limitTextPaint.textSize = if (limitKmh >= 100) 14f else 16f
                 val fm    = limitTextPaint.fontMetrics
                 val textY = rowY - (fm.ascent + fm.descent) / 2f
                 canvas.drawText(limitKmh.toString(), signCx, textY, limitTextPaint)
