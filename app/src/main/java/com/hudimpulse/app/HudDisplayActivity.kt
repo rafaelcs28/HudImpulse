@@ -441,9 +441,9 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             val speedY  = speedCenterY - (speedFm.ascent + speedFm.descent) / 2f
             canvas.drawText(speedKmh.toString(), cx, speedY, speedPaint)
 
-            // ── Linha "km/h" + placa — encostada ao fundo real do texto de velocidade ──
+            // ── Linha "km/h" + placa — posição fixa para não deslocar ao trocar de dígitos ──
             val signR = 15f
-            val rowY  = speedY + speedFm.descent + signR + if (speedKmh >= 100) -12f else -6f
+            val rowY  = speedCenterY + h * 0.195f
             unitPaint.textSize  = h * 0.074f
             unitPaint.textAlign = Paint.Align.LEFT
             val unitFm = unitPaint.fontMetrics
