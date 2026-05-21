@@ -381,7 +381,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             val speedCenterY = h / 2f
 
             // ── Círculo decorativo interno ──
-            val innerR = h * 0.26f
+            val innerR = h * 0.22f
             canvas.drawCircle(cx, speedCenterY, innerR, innerCirclePaint)
 
             // ── Arco interno: energia EV (r=0.36h) ──
@@ -453,7 +453,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             canvas.drawText(speedKmh.toString(), cx, speedY, speedPaint)
 
             // ── Linha "km/h" + placa ──
-            val rowY = speedCenterY + h * 0.21f
+            val rowY = speedCenterY + innerR + signR + 5f
             val signR = 15f
             unitPaint.textSize  = h * 0.074f
             unitPaint.textAlign = Paint.Align.LEFT
@@ -500,7 +500,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 labelPaint.textSize  = h * 0.065f
                 labelPaint.textAlign = Paint.Align.CENTER
                 val labelFm     = labelPaint.fontMetrics
-                val labelStartY = maxOf(rowY + signR * 2f + 8f, speedCenterY + energyArcR + h * 0.085f)
+                val labelStartY = h * 0.93f
                 val labelY      = labelStartY - (labelFm.ascent + labelFm.descent) / 2f
                 val rpmFraction = (engineRpm.coerceIn(0, MAX_RPM) / MAX_RPM.toFloat())
                 val rpmColor = when {

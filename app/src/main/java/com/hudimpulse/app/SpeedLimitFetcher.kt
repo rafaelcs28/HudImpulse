@@ -21,7 +21,7 @@ import kotlin.math.roundToInt
 object SpeedLimitFetcher {
 
     private const val TAG          = "SpeedLimit"
-    private const val MIN_DISTANCE = 100f
+    private const val MIN_DISTANCE = 50f
     private const val MIN_TIME_MS  = 15_000L
     private const val TIMEOUT_MS   = 8_000
 
