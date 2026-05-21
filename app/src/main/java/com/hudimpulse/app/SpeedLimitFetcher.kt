@@ -139,8 +139,9 @@ object SpeedLimitFetcher {
                         .putExtra(CarDataService.EXTRA_SPEED_LIMIT_SOURCE, CarDataService.SOURCE_HERE)
                 )
             } catch (e: Exception) {
-                LogForwarder.w(TAG, "query failed: ${e.message}")
-                broadcastStatus(ctx, "HERE: erro rede")
+                val msg = (e.message ?: e.javaClass.simpleName).take(28)
+                LogForwarder.w(TAG, "query failed: $msg")
+                broadcastStatus(ctx, msg)
             }
         }.start()
     }
