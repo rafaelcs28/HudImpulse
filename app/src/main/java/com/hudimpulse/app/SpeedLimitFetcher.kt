@@ -115,7 +115,7 @@ object SpeedLimitFetcher {
                 val url  = "$BASE_URL?transportMode=car" +
                            "&origin=${String.format(Locale.US, "%.6f,%.6f", loc.latitude, loc.longitude)}" +
                            "&destination=$dest" +
-                           "&return=spans&spans=speedLimit" +
+                           "&return=polyline&spans=speedLimit" +
                            "&apiKey=$key"
 
                 LogForwarder.d(TAG, "GET lat=${loc.latitude} lon=${loc.longitude}")
