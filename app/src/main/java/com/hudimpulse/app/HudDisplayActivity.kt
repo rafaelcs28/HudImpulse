@@ -345,18 +345,6 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             strokeWidth = 5f
             strokeCap   = Paint.Cap.ROUND
         }
-        // Arco externo — RPM motor ICE
-        private val rpmArcPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style       = Paint.Style.STROKE
-            strokeWidth = 8f
-            strokeCap   = Paint.Cap.ROUND
-        }
-        // Círculo decorativo interno
-        private val innerCirclePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color  = Color.argb(55, 255, 255, 255)
-            style  = Paint.Style.STROKE
-            strokeWidth = 1.5f
-        }
         // Labels pequenos nas extremidades dos arcos
         private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             typeface  = Typeface.DEFAULT_BOLD
@@ -364,7 +352,6 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
         }
 
         private val energyArcRect = RectF()
-        private val rpmArcRect    = RectF()
         private val MAX_RPM = 6000
 
         init { setBackgroundColor(Color.BLACK) }
@@ -380,18 +367,19 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             // ── Centro visual dos arcos (ligeiramente acima do centro geométrico) ──
             val speedCenterY = h / 2f
 
-            // ── Círculo decorativo interno ──
             val innerR = h * 0.22f
-            canvas.drawCircle(cx, speedCenterY, innerR, innerCirclePaint)
 
-            // ── Arco interno: energia EV (r=0.36h) ──
-            // Consumo (+): 9h+15° → topo → 3h  (horário)
-            // Regen  (-): 9h-15° → baixo → 3h  (anti-horário, sweep negativo)
-            // Ambos partem do lado esquerdo, sweep máx 165° → terminam em 3h a 100%
-            val energyArcR = h * 0.30f
+            // ── Arco de energia EV — mesmo raio nos dois sentidos para abertura idêntica ──
+            // Consumo (+): 9h+offset → topo → 3h  (horário)
+            // Regen  (-): 9h-offset → baixo → 3h  (anti-horário)
+            // Com RPM visível: offset=30°, sweep=150° (arco começa mais baixo, dá espaço ao label)
+            // Sem RPM:         offset=15°, sweep=165°
+            val energyArcR = h * 0.30f   // usado só para posição do label %
+            val arcR = h * 0.40f         // mesmo raio para consumo e regen
             if (energyPercent != 0f) {
                 val abs      = kotlin.math.abs(energyPercent)
-                val maxSweep = 165f          // de 9h±15° até 3h
+                val offset   = if (engineRpm > 0) 30f else 15f
+                val maxSweep = if (engineRpm > 0) 150f else 165f
                 val sweep    = (abs / 100f) * maxSweep
                 val energyColor = when {
                     energyPercent < 0f  -> Color.parseColor("#52B788")
@@ -402,12 +390,11 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 }
                 energyArcPaint.color = energyColor
                 energyArcPaint.alpha = 210
-                energyArcRect.set(cx - energyArcR, speedCenterY - energyArcR,
-                                  cx + energyArcR, speedCenterY + energyArcR)
+                energyArcRect.set(cx - arcR, speedCenterY - arcR, cx + arcR, speedCenterY + arcR)
                 if (energyPercent > 0f) {
-                    canvas.drawArc(energyArcRect, 195f, sweep, false, energyArcPaint)
+                    canvas.drawArc(energyArcRect, 180f + offset, sweep, false, energyArcPaint)
                 } else {
-                    canvas.drawArc(energyArcRect, 165f, -sweep, false, energyArcPaint)
+                    canvas.drawArc(energyArcRect, 180f - offset, -sweep, false, energyArcPaint)
                 }
 
                 // % energia na posição 9h
@@ -424,21 +411,25 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 labelPaint.textAlign = Paint.Align.CENTER
             }
 
-            // ── Arco externo: RPM motor ICE ──
-            val rpmArcR = h * 0.35f
+            // ── RPM label empilhado abaixo de energia % na posição 9h ──
             if (engineRpm > 0) {
                 val rpmFraction = (engineRpm.coerceIn(0, MAX_RPM) / MAX_RPM.toFloat())
-                val rpmSweep    = rpmFraction * 180f
                 val rpmColor = when {
                     rpmFraction > 0.83f -> Color.parseColor("#C05555")
                     rpmFraction > 0.50f -> Color.parseColor("#C87941")
                     else                -> Color.parseColor("#4A86C8")
                 }
-                rpmArcPaint.color = rpmColor
-                rpmArcPaint.alpha = 230
-                rpmArcRect.set(cx - rpmArcR, speedCenterY - rpmArcR,
-                               cx + rpmArcR, speedCenterY + rpmArcR)
-                canvas.drawArc(rpmArcRect, 195f, rpmSweep, false, rpmArcPaint)
+                labelPaint.textSize  = h * 0.070f
+                labelPaint.color     = rpmColor
+                labelPaint.alpha     = 190
+                labelPaint.textAlign = Paint.Align.RIGHT
+                val rpmFm  = labelPaint.fontMetrics
+                val rpmStr = String.format("%.1f rpm", engineRpm / 1000f)
+                canvas.drawText(rpmStr,
+                    cx - energyArcR + 4f,
+                    speedCenterY + h * 0.11f - (rpmFm.ascent + rpmFm.descent) / 2f,
+                    labelPaint)
+                labelPaint.textAlign = Paint.Align.CENTER
             }
 
             // ── Velocidade ──
@@ -495,24 +486,6 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 canvas.drawText(hereStatus, cx, statusY, labelPaint)
             }
 
-            // ── RPM label (abaixo da placa, centrado) ──
-            if (engineRpm > 0) {
-                labelPaint.textSize  = h * 0.065f
-                labelPaint.textAlign = Paint.Align.CENTER
-                val labelFm     = labelPaint.fontMetrics
-                val labelStartY = h * 0.93f
-                val labelY      = labelStartY - (labelFm.ascent + labelFm.descent) / 2f
-                val rpmFraction = (engineRpm.coerceIn(0, MAX_RPM) / MAX_RPM.toFloat())
-                val rpmColor = when {
-                    rpmFraction > 0.83f -> Color.parseColor("#C05555")
-                    rpmFraction > 0.50f -> Color.parseColor("#C87941")
-                    else                -> Color.parseColor("#4A86C8")
-                }
-                val rpmStr = if (engineRpm >= 1000) "${engineRpm / 100 * 100}" else "$engineRpm"
-                labelPaint.color = rpmColor
-                labelPaint.alpha = 190
-                canvas.drawText("$rpmStr rpm", cx, labelY, labelPaint)
-            }
         }
     }
 
