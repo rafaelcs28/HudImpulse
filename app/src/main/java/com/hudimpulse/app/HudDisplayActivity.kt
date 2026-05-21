@@ -436,7 +436,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 overPct > 0f  -> Color.YELLOW
                 else          -> Color.WHITE
             }
-            speedPaint.textSize = if (speedKmh >= 100) h * 0.24f else h * 0.29f
+            speedPaint.textSize = if (speedKmh >= 100) h * 0.24f else h * 0.29f - 2f
             val speedFm = speedPaint.fontMetrics
             val speedY  = speedCenterY - (speedFm.ascent + speedFm.descent) / 2f
             canvas.drawText(speedKmh.toString(), cx, speedY, speedPaint)

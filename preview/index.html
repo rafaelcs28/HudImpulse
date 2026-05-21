@@ -220,7 +220,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
 
   // ── Velocidade ──
   const speedColor = overPct > 20 ? '#FF4444' : overPct > 0 ? '#FFEE44' : '#FFFFFF';
-  const speedSize  = speedKmh >= 100 ? (h * 0.24).toFixed(0) : (h * 0.29).toFixed(0);
+  const speedSize  = speedKmh >= 100 ? (h * 0.24).toFixed(0) : (h * 0.29 - 2).toFixed(0);
   ctx.fillStyle  = speedColor;
   ctx.font       = `bold ${speedSize}px sans-serif`;
   ctx.textAlign  = 'center';
