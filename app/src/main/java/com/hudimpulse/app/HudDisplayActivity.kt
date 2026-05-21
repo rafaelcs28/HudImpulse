@@ -449,24 +449,32 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             val rowY = speedCenterY + h * 0.21f
             val signR = 15f
             unitPaint.textSize  = h * 0.074f
-            unitPaint.textAlign = Paint.Align.CENTER
+            unitPaint.textAlign = Paint.Align.LEFT
             val unitFm = unitPaint.fontMetrics
             val unitY  = rowY - (unitFm.ascent + unitFm.descent) / 2f
-            canvas.drawText("km/h", cx, unitY, unitPaint)
 
             if (limitKmh > 0) {
-                val signCx = signR + 4f   // left edge of panel ≈ screen center
+                // Bloco [placa] [km/h] centralizado em cx — funciona com e sem navegação
+                val gap    = h * 0.022f
+                val kmhW   = unitPaint.measureText("km/h")
+                val groupW = signR * 2f + gap + kmhW
+                val groupX = cx - groupW / 2f
+                val signCx = groupX + signR
                 canvas.drawCircle(signCx, rowY, signR, circleFill)
                 circleBorder.strokeWidth = signR * 0.25f
                 circleBorder.color = if (limitSource == CarDataService.SOURCE_TSR)
-                    Color.parseColor("#CC0000")   // vermelho — câmera leu a placa
+                    Color.parseColor("#CC0000")
                 else
-                    Color.parseColor("#4A86C8")   // azul — HERE Maps via GPS
+                    Color.parseColor("#4A86C8")
                 canvas.drawCircle(signCx, rowY, signR, circleBorder)
                 limitTextPaint.textSize = if (limitKmh >= 100) 14f else 16f
                 val fm    = limitTextPaint.fontMetrics
                 val textY = rowY - (fm.ascent + fm.descent) / 2f
                 canvas.drawText(limitKmh.toString(), signCx, textY, limitTextPaint)
+                canvas.drawText("km/h", groupX + signR * 2f + gap, unitY, unitPaint)
+            } else {
+                unitPaint.textAlign = Paint.Align.CENTER
+                canvas.drawText("km/h", cx, unitY, unitPaint)
             }
 
             // ── Status HERE (diagnóstico, só quando sem placa) ──

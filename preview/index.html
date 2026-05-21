@@ -242,12 +242,15 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   ctx.font     = `bold ${unitSz}px sans-serif`;
   ctx.textBaseline = 'middle';
 
-  ctx.fillStyle = 'rgba(255,255,255,0.65)';
-  ctx.textAlign = 'center';
-  ctx.fillText('km/h', cx, rowY);
-
   if (limitKmh > 0) {
-    const scx = x + signR + 4;   // left edge of panel ≈ screen center
+    // Bloco [placa] [km/h] centralizado em cx
+    ctx.font     = `bold ${unitSz}px sans-serif`;
+    ctx.textAlign = 'left';
+    const gap    = h * 0.022;
+    const kmhW   = ctx.measureText('km/h').width;
+    const groupW = signR * 2 + gap + kmhW;
+    const groupX = cx - groupW / 2;
+    const scx    = groupX + signR;
     ctx.beginPath();
     ctx.arc(scx, rowY, signR, 0, Math.PI*2);
     ctx.fillStyle = '#fff';
@@ -261,6 +264,14 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
     ctx.font = `bold ${limitKmh >= 100 ? 14 : 16}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText(String(limitKmh), scx, rowY);
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.font     = `bold ${unitSz}px sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.fillText('km/h', groupX + signR * 2 + gap, rowY);
+  } else {
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.textAlign = 'center';
+    ctx.fillText('km/h', cx, rowY);
   }
 
   // ── RPM label (abaixo da placa, centro) ──
