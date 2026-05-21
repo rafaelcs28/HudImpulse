@@ -63,6 +63,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
     private lateinit var prefs: HudPreferences
 
     private var currentNavData: NavData? = null
+    private var lastRoad: String = ""
 
     // ── Timers ──
     private val clearHandler  = Handler(Looper.getMainLooper())
@@ -85,10 +86,11 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 android.util.Log.i("HudNav", "extra: $k = ${intent.extras?.get(k)}")
             }
 
+            val road = intent.getStringExtra("road") ?: ""
             val data = NavData(
                 distanceMeters = intent.getIntExtra("distance_meters", -1),
                 timeSeconds    = intent.getIntExtra("time_seconds", -1),
-                road           = intent.getStringExtra("road") ?: "",
+                road           = road,
                 nextEventType  = intent.getIntExtra("next_event_type", 0),
                 actionText     = intent.getStringExtra("action_text") ?: "",
                 turnSide       = intent.getIntExtra("turn_side", 3),
@@ -96,6 +98,11 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 turnAngle      = intent.getIntExtra("turn_angle", -1)
             )
             onNavigationUpdate(data)
+            // Consulta imediata ao trocar de rua — não espera 100m
+            if (road.isNotBlank() && road != lastRoad) {
+                lastRoad = road
+                SpeedLimitFetcher.forceQuery(this@HudDisplayActivity)
+            }
             // Speed limit do Waze via headunit-revived (prioridade sobre Beantechs quando disponível)
             val navLimit = intent.getIntExtra("speed_limit_kmh", -1)
             if (navLimit in 1..300) speedPanel.limitKmh = navLimit

@@ -21,8 +21,8 @@ android {
         applicationId = "com.hudimpulse.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 20
-        versionName = "1.0.20"
+        versionCode = 21
+        versionName = "1.0.21"
 
         buildConfigField("String", "GITHUB_REPO", "\"rafaelcs28/HudImpulse\"")
         buildConfigField("String", "HERE_API_KEY", "\"${signingProp("HERE_API_KEY", "here.api.key")}\"")

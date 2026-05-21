@@ -105,6 +105,22 @@ object SpeedLimitFetcher {
         appContext = null
     }
 
+    /** Consulta imediata ao trocar de rua — ignora o threshold de 100m. */
+    fun forceQuery(context: Context) {
+        if (BuildConfig.HERE_API_KEY.isEmpty()) return
+        if (context.checkSelfPermission(android.Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) return
+        appContext = appContext ?: context.applicationContext
+        val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val last = lm.getProviders(true).mapNotNull { p ->
+            try { lm.getLastKnownLocation(p) } catch (_: Exception) { null }
+        }.maxByOrNull { it.time }
+        if (last != null) {
+            LogForwarder.i(TAG, "forceQuery on street change: ${last.latitude},${last.longitude}")
+            query(last)
+        }
+    }
+
     private fun query(loc: Location) {
         val key = BuildConfig.HERE_API_KEY
         val ctx = appContext ?: return
