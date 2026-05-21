@@ -367,15 +367,13 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             // ── Centro visual dos arcos (ligeiramente acima do centro geométrico) ──
             val speedCenterY = h / 2f
 
-            val innerR = h * 0.22f
-
             // ── Arco de energia EV — mesmo raio nos dois sentidos para abertura idêntica ──
             // Consumo (+): 9h+offset → topo → 3h  (horário)
             // Regen  (-): 9h-offset → baixo → 3h  (anti-horário)
             // Com RPM visível: offset=30°, sweep=150° (arco começa mais baixo, dá espaço ao label)
             // Sem RPM:         offset=15°, sweep=165°
             val energyArcR = h * 0.30f   // usado só para posição do label %
-            val arcR = h * 0.40f         // mesmo raio para consumo e regen
+            val arcR = h * 0.36f         // mesmo raio para consumo e regen
             if (energyPercent != 0f) {
                 val abs      = kotlin.math.abs(energyPercent)
                 val offset   = if (engineRpm > 0) 30f else 15f
@@ -438,14 +436,14 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 overPct > 0f  -> Color.YELLOW
                 else          -> Color.WHITE
             }
-            speedPaint.textSize = h * 0.35f
+            speedPaint.textSize = if (speedKmh >= 100) h * 0.28f else h * 0.35f
             val speedFm = speedPaint.fontMetrics
             val speedY  = speedCenterY - (speedFm.ascent + speedFm.descent) / 2f
             canvas.drawText(speedKmh.toString(), cx, speedY, speedPaint)
 
-            // ── Linha "km/h" + placa ──
+            // ── Linha "km/h" + placa — encostada ao fundo real do texto de velocidade ──
             val signR = 15f
-            val rowY = speedCenterY + innerR + signR + 5f
+            val rowY  = speedY + speedFm.descent + signR + 4f
             unitPaint.textSize  = h * 0.074f
             unitPaint.textAlign = Paint.Align.LEFT
             val unitFm = unitPaint.fontMetrics

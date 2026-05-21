@@ -169,7 +169,6 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   const speedCenterY = y + h/2;
 
   // ── Inner decorative circle ──
-  const innerR = h*0.22;
 
   // ── Energy arc (inner, r=0.36h) ──
   // Consumo: 9h+15° → topo → 3h  (horário)
@@ -178,7 +177,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
     const abs      = Math.abs(energyPct);
     const r        = h * 0.30;
     // Mesmo raio para consumo e regen → abertura idêntica
-    const arcR     = h * 0.40;
+    const arcR     = h * 0.36;
     const offset   = engineRpm > 0 ? Math.PI/6 : Math.PI/12;   // 30° ou 15°
     const maxSweep = engineRpm > 0 ? 5*Math.PI/6 : (Math.PI - Math.PI/12); // 150° ou 165°
     const sweep    = (abs/100) * maxSweep;
@@ -221,16 +220,17 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
 
   // ── Velocidade ──
   const speedColor = overPct > 20 ? '#FF4444' : overPct > 0 ? '#FFEE44' : '#FFFFFF';
-  const speedSize  = (h * 0.35).toFixed(0);
+  const speedSize  = speedKmh >= 100 ? (h * 0.28).toFixed(0) : (h * 0.35).toFixed(0);
   ctx.fillStyle  = speedColor;
   ctx.font       = `bold ${speedSize}px sans-serif`;
   ctx.textAlign  = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(String(speedKmh), cx, speedCenterY);
 
-  // ── km/h + placa ──
-  const signR  = 15;
-  const rowY   = speedCenterY + innerR + signR + 5;
+  // ── km/h + placa — encostada ao fundo real do texto de velocidade ──
+  const signR = 15;
+  // Aproxima speedY + descent do Kotlin (textBaseline='middle' + offset de centralização)
+  const rowY  = speedCenterY + parseFloat(speedSize) * 0.53 + signR + 4;
   const unitSz = (h * 0.074).toFixed(0);
   ctx.font     = `bold ${unitSz}px sans-serif`;
   ctx.textBaseline = 'middle';
