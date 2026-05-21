@@ -361,8 +361,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             val h  = height.toFloat()
             val cx = w / 2f
 
-            val overPct = if (limitKmh > 0 && speedKmh > limitKmh)
-                (speedKmh - limitKmh) * 100f / limitKmh else 0f
+            val over = if (limitKmh > 0) speedKmh - limitKmh else Int.MIN_VALUE
 
             // ── Centro visual dos arcos (ligeiramente acima do centro geométrico) ──
             val speedCenterY = h / 2f - 16f   // bloco sobe 8px a mais
@@ -435,9 +434,10 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             // ── Velocidade ──
             val speedTextCenterY = speedCenterY - 16f  // só velocidade + placa sobem 16px a mais
             speedPaint.color = when {
-                overPct > 20f -> Color.RED
-                overPct > 0f  -> Color.YELLOW
-                else          -> Color.WHITE
+                over > 7  -> Color.RED
+                over > 0  -> Color.YELLOW
+                over >= 0 -> Color.parseColor("#4CAF50")  // verde: dentro do limite
+                else      -> Color.WHITE                  // sem placa
             }
             speedPaint.textSize = if (speedKmh >= 100) h * 0.24f else h * 0.29f - 2f
             val speedFm = speedPaint.fontMetrics

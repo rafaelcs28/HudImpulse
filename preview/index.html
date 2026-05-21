@@ -163,8 +163,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   const MAX_RPM = 6000;
 
   // Over limit calc
-  const overPct = (limitKmh > 0 && speedKmh > limitKmh)
-    ? (speedKmh - limitKmh)*100/limitKmh : 0;
+  const over = limitKmh > 0 ? speedKmh - limitKmh : -Infinity;
 
   const speedCenterY     = y + h/2 - 16;
   const regenCenterY     = y + h/2 - 8;
@@ -221,7 +220,10 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   }
 
   // ── Velocidade ──
-  const speedColor = overPct > 20 ? '#FF4444' : overPct > 0 ? '#FFEE44' : '#FFFFFF';
+  const speedColor = over > 7  ? '#FF4444'
+                  : over > 0  ? '#FFEE44'
+                  : over >= 0 ? '#4CAF50'
+                  :             '#FFFFFF';
   const speedSize  = speedKmh >= 100 ? (h * 0.24).toFixed(0) : (h * 0.29 - 2).toFixed(0);
   ctx.fillStyle  = speedColor;
   ctx.font       = `bold ${speedSize}px sans-serif`;
