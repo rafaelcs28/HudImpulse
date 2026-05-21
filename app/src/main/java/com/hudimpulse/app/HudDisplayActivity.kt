@@ -365,7 +365,8 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 (speedKmh - limitKmh) * 100f / limitKmh else 0f
 
             // ── Centro visual dos arcos (ligeiramente acima do centro geométrico) ──
-            val speedCenterY = h / 2f - 8f
+            val speedCenterY = h / 2f - 16f   // bloco sobe 8px a mais
+            val regenCenterY = h / 2f - 8f    // arco de regen não sobe
 
             // ── Arco de energia EV — mesmo raio nos dois sentidos para abertura idêntica ──
             // Consumo (+): 9h+offset → topo → 3h  (horário)
@@ -388,10 +389,11 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 }
                 energyArcPaint.color = energyColor
                 energyArcPaint.alpha = 210
-                energyArcRect.set(cx - arcR, speedCenterY - arcR, cx + arcR, speedCenterY + arcR)
                 if (energyPercent > 0f) {
+                    energyArcRect.set(cx - arcR, speedCenterY - arcR, cx + arcR, speedCenterY + arcR)
                     canvas.drawArc(energyArcRect, 180f + offset, sweep, false, energyArcPaint)
                 } else {
+                    energyArcRect.set(cx - arcR, regenCenterY - arcR, cx + arcR, regenCenterY + arcR)
                     canvas.drawArc(energyArcRect, 180f - offset, -sweep, false, energyArcPaint)
                 }
 
@@ -431,6 +433,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             }
 
             // ── Velocidade ──
+            val speedTextCenterY = speedCenterY - 16f  // só velocidade + placa sobem 16px a mais
             speedPaint.color = when {
                 overPct > 20f -> Color.RED
                 overPct > 0f  -> Color.YELLOW
@@ -438,12 +441,12 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             }
             speedPaint.textSize = if (speedKmh >= 100) h * 0.24f else h * 0.29f - 2f
             val speedFm = speedPaint.fontMetrics
-            val speedY  = speedCenterY - (speedFm.ascent + speedFm.descent) / 2f
+            val speedY  = speedTextCenterY - (speedFm.ascent + speedFm.descent) / 2f
             canvas.drawText(speedKmh.toString(), cx, speedY, speedPaint)
 
             // ── Linha "km/h" + placa — posição fixa para não deslocar ao trocar de dígitos ──
             val signR = 15f
-            val rowY  = speedCenterY + h * 0.195f
+            val rowY  = speedTextCenterY + h * 0.195f
             unitPaint.textSize  = h * 0.074f
             unitPaint.textAlign = Paint.Align.LEFT
             val unitFm = unitPaint.fontMetrics
