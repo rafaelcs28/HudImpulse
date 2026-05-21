@@ -443,7 +443,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
 
             // ── Linha "km/h" + placa — encostada ao fundo real do texto de velocidade ──
             val signR = 15f
-            val rowY  = speedY + speedFm.descent + signR + 4f
+            val rowY  = speedY + speedFm.descent + signR - 4f
             unitPaint.textSize  = h * 0.074f
             unitPaint.textAlign = Paint.Align.LEFT
             val unitFm = unitPaint.fontMetrics

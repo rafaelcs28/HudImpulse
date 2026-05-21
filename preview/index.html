@@ -230,7 +230,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   // ── km/h + placa — encostada ao fundo real do texto de velocidade ──
   const signR = 15;
   // Aproxima speedY + descent do Kotlin (textBaseline='middle' + offset de centralização)
-  const rowY  = speedCenterY + parseFloat(speedSize) * 0.53 + signR + 4;
+  const rowY  = speedCenterY + parseFloat(speedSize) * 0.53 + signR - 4;
   const unitSz = (h * 0.074).toFixed(0);
   ctx.font     = `bold ${unitSz}px sans-serif`;
   ctx.textBaseline = 'middle';
