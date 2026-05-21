@@ -203,7 +203,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
     ctx.font = `bold ${(h * 0.085).toFixed(0)}px sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillText((energyPct > 0 ? '▲ ' : '▼ ') + abs.toFixed(0) + '%', cx - r + 4, speedCenterY);
+    ctx.fillText((energyPct > 0 ? '▲ ' : '▼ ') + abs.toFixed(0) + '%', cx - r + 4, speedCenterY - 2);
   }
 
   // ── RPM label at 9h (stacked below energy %) ──
@@ -215,7 +215,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
     ctx.textAlign    = 'right';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = rgba(color, 0.85);
-    ctx.fillText(rpmDisp, cx - h * 0.30 + 4, speedCenterY + h * 0.11);
+    ctx.fillText(rpmDisp, cx - h * 0.30 + 4, speedCenterY + h * 0.11 - 2);
   }
 
   // ── Velocidade ──
@@ -230,7 +230,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
   // ── km/h + placa — encostada ao fundo real do texto de velocidade ──
   const signR = 15;
   // Aproxima speedY + descent do Kotlin (textBaseline='middle' + offset de centralização)
-  const rowY  = speedCenterY + parseFloat(speedSize) * 0.53 + signR - 12;
+  const rowY  = speedCenterY + parseFloat(speedSize) * 0.53 + signR + (speedKmh >= 100 ? -12 : -6);
   const unitSz = (h * 0.074).toFixed(0);
   ctx.font     = `bold ${unitSz}px sans-serif`;
   ctx.textBaseline = 'middle';

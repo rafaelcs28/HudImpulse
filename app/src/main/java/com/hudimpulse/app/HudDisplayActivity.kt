@@ -404,7 +404,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 val eLabelStr = if (energyPercent > 0f) "▲ ${abs.toInt()}%" else "▼ ${abs.toInt()}%"
                 canvas.drawText(eLabelStr,
                     cx - energyArcR + 4f,
-                    speedCenterY - (eLabelFm.ascent + eLabelFm.descent) / 2f,
+                    speedCenterY - 2f - (eLabelFm.ascent + eLabelFm.descent) / 2f,
                     labelPaint)
                 labelPaint.textAlign = Paint.Align.CENTER
             }
@@ -425,7 +425,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 val rpmStr = String.format("%.1f rpm", engineRpm / 1000f)
                 canvas.drawText(rpmStr,
                     cx - energyArcR + 4f,
-                    speedCenterY + h * 0.11f - (rpmFm.ascent + rpmFm.descent) / 2f,
+                    speedCenterY + h * 0.11f - 2f - (rpmFm.ascent + rpmFm.descent) / 2f,
                     labelPaint)
                 labelPaint.textAlign = Paint.Align.CENTER
             }
@@ -443,7 +443,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
 
             // ── Linha "km/h" + placa — encostada ao fundo real do texto de velocidade ──
             val signR = 15f
-            val rowY  = speedY + speedFm.descent + signR - 12f
+            val rowY  = speedY + speedFm.descent + signR + if (speedKmh >= 100) -12f else -6f
             unitPaint.textSize  = h * 0.074f
             unitPaint.textAlign = Paint.Align.LEFT
             val unitFm = unitPaint.fontMetrics
