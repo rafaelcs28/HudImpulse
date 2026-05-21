@@ -203,7 +203,7 @@ function drawSpeedPanel(ctx, x, y, w, h, speedKmh, limitKmh, engineRpm, energyPc
 
     // % energia na posição 9h
     ctx.fillStyle = rgba(color, 0.88);
-    ctx.font = `bold ${(h * 0.075).toFixed(0)}px sans-serif`;
+    ctx.font = `bold ${(h * 0.085).toFixed(0)}px sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
     ctx.fillText((energyPct > 0 ? '▲ ' : '▼ ') + abs.toFixed(0) + '%', cx - r + 4, speedCenterY);

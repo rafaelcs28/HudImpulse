@@ -404,7 +404,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 }
 
                 // % energia na posição 9h
-                labelPaint.textSize  = h * 0.075f
+                labelPaint.textSize  = h * 0.085f
                 labelPaint.color     = energyColor
                 labelPaint.alpha     = 190
                 labelPaint.textAlign = Paint.Align.RIGHT
