@@ -172,7 +172,6 @@ object SpeedLimitFetcher {
                 ctx.sendBroadcast(
                     Intent(CarDataService.ACTION_CAR_DATA)
                         .putExtra(CarDataService.EXTRA_SPEED_LIMIT_KMH, kmh)
-                        .putExtra(CarDataService.EXTRA_SPEED_LIMIT_SOURCE, CarDataService.SOURCE_HERE)
                 )
             } catch (e: Exception) {
                 val msg = (e.message ?: e.javaClass.simpleName).take(28)

@@ -68,42 +68,13 @@ class CarDataService : Service() {
             controlService?.addListenerKey(packageName, arrayOf(KEY_SPEED))
             controlService?.addListenerKey(packageName, arrayOf(KEY_ENERGY))
             controlService?.addListenerKey(packageName, arrayOf(KEY_ENGINE_RPM))
-            // Registra todos os candidatos TSR como listeners — logcat mostrará qual dispara
-            TSR_CANDIDATES.forEach { controlService?.addListenerKey(packageName, arrayOf(it)) }
             controlService?.registerDataChangedListener(packageName, listener)
             connected = true
             Log.i(TAG, "Connected to Beantechs service")
-            // Consulta imediata das chaves candidatas para ver quais têm valor cached
-            discoverTsrKey()
         } catch (e: Exception) {
             Log.w(TAG, "Cannot connect to Beantechs yet: ${e.message} — retrying in ${RETRY_MS}ms")
             retryHandler.postDelayed(retryRunnable, RETRY_MS)
         }
-    }
-
-    /**
-     * Parseia valor TSR que pode vir como "60" ou "{60,-2147483648}".
-     * Retorna null se todos os valores forem Int.MIN_VALUE (sentinela = sem dado).
-     */
-    private fun parseTsrValue(raw: String): Int? {
-        val cleaned = raw.trim().removePrefix("{").removeSuffix("}")
-        return cleaned.split(",")
-            .mapNotNull { it.trim().toIntOrNull() }
-            .firstOrNull { it != Int.MIN_VALUE && it > 0 }
-    }
-
-    private fun discoverTsrKey() {
-        Log.i(TAG, "=== TSR KEY DISCOVERY ===")
-        TSR_CANDIDATES.forEach { key ->
-            try {
-                val v = controlService?.fetchData(key)
-                val parsed = v?.let { parseTsrValue(it) }
-                Log.i(TAG, "fetchData[$key] = $v  →  parsed=$parsed")
-            } catch (e: Exception) {
-                Log.w(TAG, "fetchData[$key] error: ${e.message}")
-            }
-        }
-        Log.i(TAG, "=== END DISCOVERY ===")
     }
 
     private fun handleDataChanged(key: String, value: String) {
@@ -130,22 +101,7 @@ class CarDataService : Service() {
                 intent.putExtra(EXTRA_ENGINE_RPM, rpm)
                 sendBroadcast(intent)
             }
-            in TSR_CANDIDATES -> {
-                Log.i(TAG, "TSR hit! key=$key value=$value")
-                // Chaves de status/tipo/distância são informativas — não contêm limite
-                if (key != "car.map.tsr.nav_speed_limit" &&
-                    key != "car.map.tsr.nav_trafic_sign") return
-                // Formato pode ser simples "60" ou par "{60,-2147483648}"
-                // -2147483648 (Int.MIN_VALUE) = sentinela Beantechs para "sem dado"
-                val limit = parseTsrValue(value) ?: run {
-                    Log.d(TAG, "TSR: sem dado válido em '$value'"); return
-                }
-                Log.i(TAG, "Speed limit: $limit km/h via $key")
-                intent.putExtra(EXTRA_SPEED_LIMIT_KMH, limit)
-                intent.putExtra(EXTRA_SPEED_LIMIT_SOURCE, SOURCE_TSR)
-                sendBroadcast(intent)
-            }
-            else -> Log.i(TAG, "unknown key=$key value=$value")
+            else -> Log.d(TAG, "unknown key=$key value=$value")
         }
     }
 
@@ -154,12 +110,8 @@ class CarDataService : Service() {
         const val EXTRA_SPEED_KMH          = "speed_kmh"
         const val EXTRA_ENERGY_PERCENT     = "energy_percent"      // float: >0 consumo, <0 regen
         const val EXTRA_SPEED_LIMIT_KMH    = "speed_limit_kmh"     // int: limite da via (0 = desconhecido)
-        const val EXTRA_SPEED_LIMIT_SOURCE = "speed_limit_source"  // string: SOURCE_TSR ou SOURCE_HERE
         const val EXTRA_ENGINE_RPM         = "engine_rpm"          // int: RPM do motor ICE (0 = motor desligado)
         const val EXTRA_HERE_STATUS        = "here_status"         // string: diagnóstico visível no HUD
-
-        const val SOURCE_TSR  = "tsr"   // câmera do carro leu a placa
-        const val SOURCE_HERE = "here"  // HERE Maps via GPS
 
         private const val KEY_SPEED       = "car.basic.vehicle_speed"
         private const val KEY_ENERGY      = "car.ev_info.energy_output_percentage"
@@ -167,18 +119,5 @@ class CarDataService : Service() {
         private const val SERVICE_NAME    = "com.beantechs.intelligentvehiclecontrol"
         private const val RETRY_MS        = 5_000L
         private const val TAG             = "CarDataService"
-
-        // Chaves TSR confirmadas via CarConstants do carro.
-        // nav_speed_limit é a chave principal; as demais são companheiras que
-        // indicam status, tipo e sinal completo — todas monitoradas para diagnóstico.
-        val TSR_CANDIDATES = arrayOf(
-            "car.map.tsr.nav_speed_limit",
-            "car.map.tsr.nav_speed_limit_sign_status",
-            "car.map.tsr.nav_speed_limit_type",
-            "car.map.tsr.nav_trafic_sign",
-            "car.map.tsr.nav_to_traffic_eye_distance",
-            "car.map.tsr.nav_road_type",
-            "car.map.tsr.nav_contry_type"
-        )
     }
 }

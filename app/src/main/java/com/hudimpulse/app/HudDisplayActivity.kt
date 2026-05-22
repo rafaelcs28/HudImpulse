@@ -124,8 +124,6 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             if (intent.hasExtra(CarDataService.EXTRA_SPEED_LIMIT_KMH)) {
                 val limit = intent.getIntExtra(CarDataService.EXTRA_SPEED_LIMIT_KMH, 0)
                 speedPanel.limitKmh = if (limit > 0) limit else -1
-                speedPanel.limitSource = intent.getStringExtra(CarDataService.EXTRA_SPEED_LIMIT_SOURCE)
-                    ?: CarDataService.SOURCE_HERE
             }
             if (intent.hasExtra(CarDataService.EXTRA_ENGINE_RPM)) {
                 speedPanel.engineRpm = intent.getIntExtra(CarDataService.EXTRA_ENGINE_RPM, -1)
@@ -311,8 +309,6 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
             set(v) { field = v; invalidate() }
         var limitKmh: Int = -1
             set(v) { field = v; invalidate() }
-        var limitSource: String = CarDataService.SOURCE_HERE
-            set(v) { field = v; invalidate() }
         var energyPercent: Float = 0f
             set(v) { field = v.coerceIn(-100f, 100f); invalidate() }
         var engineRpm: Int = -1
@@ -461,10 +457,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 val signCx = groupX + signR
                 canvas.drawCircle(signCx, rowY, signR, circleFill)
                 circleBorder.strokeWidth = signR * 0.25f
-                circleBorder.color = if (limitSource == CarDataService.SOURCE_TSR)
-                    Color.parseColor("#CC0000")
-                else
-                    Color.parseColor("#4A86C8")
+                circleBorder.color = Color.parseColor("#4A86C8")
                 canvas.drawCircle(signCx, rowY, signR, circleBorder)
                 limitTextPaint.textSize = if (limitKmh >= 100) 14f else 16f
                 val fm    = limitTextPaint.fontMetrics
