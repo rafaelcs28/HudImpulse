@@ -408,11 +408,11 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
 
             // ── RPM label empilhado abaixo de energia % na posição 9h ──
             if (engineRpm > 0) {
-                val rpmFraction = (engineRpm.coerceIn(0, MAX_RPM) / MAX_RPM.toFloat())
                 val rpmColor = when {
-                    rpmFraction > 0.83f -> Color.parseColor("#C05555")
-                    rpmFraction > 0.50f -> Color.parseColor("#C87941")
-                    else                -> Color.parseColor("#4A86C8")
+                    engineRpm > 5000 -> Color.parseColor("#CC0000")
+                    engineRpm > 4000 -> Color.parseColor("#E07830")
+                    engineRpm > 2500 -> Color.parseColor("#FFEE44")
+                    else             -> Color.parseColor("#4A86C8")
                 }
                 labelPaint.textSize  = h * 0.070f
                 labelPaint.color     = rpmColor
