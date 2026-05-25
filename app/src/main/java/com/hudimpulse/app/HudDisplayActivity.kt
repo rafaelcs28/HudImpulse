@@ -457,7 +457,7 @@ class HudDisplayActivity : AppCompatActivity(), NavigationReceiver.NavigationLis
                 val signCx = groupX + signR
                 canvas.drawCircle(signCx, rowY, signR, circleFill)
                 circleBorder.strokeWidth = signR * 0.25f
-                circleBorder.color = Color.parseColor("#4A86C8")
+                circleBorder.color = Color.parseColor("#CC0000")
                 canvas.drawCircle(signCx, rowY, signR, circleBorder)
                 limitTextPaint.textSize = if (limitKmh >= 100) 14f else 16f
                 val fm    = limitTextPaint.fontMetrics
